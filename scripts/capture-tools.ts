@@ -27,6 +27,7 @@
 
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
+import { writeFileSync, renameSync, existsSync } from "node:fs";
 import { initializeStitchConnection } from "../packages/sdk/src/proxy/client.js";
 import type { ProxyContext } from "../packages/sdk/src/proxy/client.js";
 
@@ -67,19 +68,26 @@ async function main() {
     console.log(`   - ${tool.name}: ${tool.description?.slice(0, 60)}...`);
   }
 
-  // Write tools-manifest.json
   const manifestContent = JSON.stringify(tools, null, 2) + "\n";
-  await Bun.write(MANIFEST_PATH, manifestContent);
-  console.log(`\n📦 Wrote ${MANIFEST_PATH}`);
-
-  // Update stitch-sdk.lock
   const manifestHash = createHash("sha256")
     .update(manifestContent)
     .digest("hex");
+
+  // Read the lock BEFORE writing anything. A corrupt lock is a pipeline
+  // integrity failure — never silently reset it (that would discard the
+  // generated/domainMap sections without warning).
   let lock: any = {};
-  try {
-    lock = JSON.parse(await Bun.file(LOCK_PATH).text());
-  } catch {
+  if (existsSync(LOCK_PATH)) {
+    try {
+      lock = JSON.parse(await Bun.file(LOCK_PATH).text());
+    } catch (err) {
+      console.error(
+        `❌ stitch-sdk.lock exists but is not valid JSON: ${err}\n` +
+          `   Inspect or delete ${LOCK_PATH} manually, then re-run.`,
+      );
+      process.exit(1);
+    }
+  } else {
     lock = { schemaVersion: 1 };
   }
 
@@ -91,7 +99,14 @@ async function main() {
     serverUrl: baseUrl,
   };
 
-  await Bun.write(LOCK_PATH, JSON.stringify(lock, null, 2) + "\n");
+  // Atomic write of both files: stage to .tmp, then rename. An interrupt
+  // can no longer leave manifest and lock inconsistent with each other.
+  const lockContent = JSON.stringify(lock, null, 2) + "\n";
+  writeFileSync(`${MANIFEST_PATH}.tmp`, manifestContent);
+  writeFileSync(`${LOCK_PATH}.tmp`, lockContent);
+  renameSync(`${MANIFEST_PATH}.tmp`, MANIFEST_PATH);
+  renameSync(`${LOCK_PATH}.tmp`, LOCK_PATH);
+  console.log(`\n📦 Wrote ${MANIFEST_PATH}`);
   console.log(`🔒 Updated ${LOCK_PATH} (manifest section)`);
   console.log(
     `\n✅ Stage 1 complete. Run Stage 2 (agent) to produce domain-map.json.`,
