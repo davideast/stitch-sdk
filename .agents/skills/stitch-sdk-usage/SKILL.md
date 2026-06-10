@@ -27,8 +27,8 @@ import { stitch } from "@google/stitch-sdk";
 const project = await stitch.createProject({ title: "My App" });
 const generation = await project.generate("A settings page with dark theme");
 const screen = generation.first; // all screens: generation.screens
-const html = await screen.getHtml(); // download URL for the HTML
-const imageUrl = await screen.getImage(); // download URL for the screenshot
+const html = await screen.getHtml(); // the HTML content
+const png = await screen.getImage(); // screenshot bytes (Uint8Array)
 ```
 
 The `stitch` singleton reads `STITCH_API_KEY` from the environment and connects on first use — no setup code required.
@@ -136,14 +136,16 @@ variants.screens; // all variant Screens
 ## Retrieving Screen Assets
 
 ```typescript
-// Get screen HTML download URL
-const html = await screen.getHtml();
+// CONTENT (fetched for you)
+const html = await screen.getHtml(); // HTML string
+const png = await screen.getImage(); // Uint8Array
 
-// Get screen screenshot download URL
-const imageUrl = await screen.getImage();
+// Or just the signed download URLs
+const htmlUrl = await screen.getHtmlUrl();
+const imageUrl = await screen.getImageUrl();
 ```
 
-Both methods use cached data from the generation response when available, falling back to an API call when needed.
+URL accessors use cached data from the generation response when available and write fetched responses back to the cache. A missing artifact throws `StitchError` with code `NOT_FOUND` (never a silent empty string).
 
 ## Dynamic Tool Client (for agents)
 

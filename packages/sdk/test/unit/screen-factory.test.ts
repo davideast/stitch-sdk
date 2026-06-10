@@ -54,7 +54,7 @@ describe("Project.screen() factory", () => {
     expect(edited.first.id).toBe("new-screen-id");
   });
 
-  it("should produce a screen that can call getHtml() via API", async () => {
+  it("should produce a screen that can call getHtmlUrl() via API", async () => {
     const { stitch, mockClient } = makeStitch();
     vi.spyOn(mockClient, "callTool").mockResolvedValue({
       htmlCode: { downloadUrl: "https://example.com/html" },
@@ -62,7 +62,7 @@ describe("Project.screen() factory", () => {
 
     const project = stitch.project(PROJECT_ID);
     const screen = project.screen(SCREEN_ID);
-    const html = await screen.getHtml();
+    const html = await screen.getHtmlUrl();
 
     expect(html).toBe("https://example.com/html");
   });

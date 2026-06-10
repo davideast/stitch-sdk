@@ -46,7 +46,7 @@ import {
   type UploadErrorCode,
   type UploadSpec,
 } from "./spec/upload.js";
-import { Screen } from "../generated/src/screen.js";
+import { Screen } from "./screen-ext.js";
 import { StitchError } from "./spec/errors.js";
 import { classifyError, isRecoverable } from "./spec/error-mapping.js";
 

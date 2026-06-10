@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:916181fe773d...)
+        domain-map.json     (sha256:ba4df40dfd8a...)
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";
@@ -19,7 +19,7 @@ export class Screen {
     public readonly screenId!: string;
     public data: any;
 
-    constructor(private client: StitchToolClient, data: any) {
+    constructor(protected client: StitchToolClient, data: any) {
         if (typeof data === "string") {
           throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
         }
@@ -66,13 +66,17 @@ export class Screen {
      * Retrieves the details of a specific screen within a project.
      * Tool: get_screen
      */
-    async getHtml(): Promise<string> {
+    async getHtmlUrl(): Promise<string> {
         // Use cached HTML download URL from generation response if available
         if (this.data?.htmlCode?.downloadUrl) return this.data?.htmlCode?.downloadUrl;
         
         try {
           const raw = await this.client.callTool<GetScreenResponse>("get_screen", { projectId: this.projectId, screenId: this.screenId, name: `projects/${this.projectId}/screens/${this.screenId}` });
-          return raw?.htmlCode?.downloadUrl || "";
+          // writeBack: merge the response into this.data so the next call hits the cache
+          if (raw && typeof raw === "object") this.data = { ...this.data, ...raw };
+          const _value = raw?.htmlCode?.downloadUrl;
+          if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "get_screen response has no htmlCode.downloadUrl for this resource", recoverable: false });
+          return _value;
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }
@@ -82,13 +86,17 @@ export class Screen {
      * Retrieves the details of a specific screen within a project.
      * Tool: get_screen
      */
-    async getImage(): Promise<string> {
+    async getImageUrl(): Promise<string> {
         // Use cached screenshot URL from generation response
         if (this.data?.screenshot?.downloadUrl) return this.data?.screenshot?.downloadUrl;
         
         try {
           const raw = await this.client.callTool<GetScreenResponse>("get_screen", { projectId: this.projectId, screenId: this.screenId, name: `projects/${this.projectId}/screens/${this.screenId}` });
-          return raw?.screenshot?.downloadUrl || "";
+          // writeBack: merge the response into this.data so the next call hits the cache
+          if (raw && typeof raw === "object") this.data = { ...this.data, ...raw };
+          const _value = raw?.screenshot?.downloadUrl;
+          if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "get_screen response has no screenshot.downloadUrl for this resource", recoverable: false });
+          return _value;
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }

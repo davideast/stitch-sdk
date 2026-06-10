@@ -15,7 +15,7 @@
 // Domain classes
 export { Stitch } from "../generated/src/stitch.js";
 export { Project } from "./project-ext.js"; // Extended: includes uploadImage(), downloadAssets()
-export { Screen } from "../generated/src/screen.js";
+export { Screen } from "./screen-ext.js"; // Extended: getHtml()/getImage() fetch content; URL accessors are generated
 export { DesignSystem } from "../generated/src/designsystem.js";
 export { Generation } from "./generation.js";
 

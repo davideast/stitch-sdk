@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:916181fe773d...)
+        domain-map.json     (sha256:ba4df40dfd8a...)
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";

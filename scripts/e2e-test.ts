@@ -105,17 +105,19 @@ try {
   console.log("\n📄 Getting HTML (cached)...");
   const html = await screen.getHtml();
   assert(
-    typeof html === "string" && html.length > 0,
-    `Got HTML (${html.length} chars)`,
+    typeof html === "string" && html.length > 0 && !html.startsWith("http"),
+    `Got HTML CONTENT (${html.length} chars, not a URL)`,
   );
 
   // ── 6. Get Image (cached path — data from generate) ─────────
   console.log("\n🖼️  Getting image (cached)...");
-  const imageUrl = await screen.getImage();
+  const imageUrl = await screen.getImageUrl();
   assert(
     typeof imageUrl === "string" && imageUrl.length > 0,
     `Got image URL (${imageUrl.slice(0, 60)}...)`,
   );
+  const imageBytes = await screen.getImage();
+  assert(imageBytes.byteLength > 0, `Got image bytes (${imageBytes.byteLength})`);
 
   // ── 7. Edit screen ─────────────────────────────────────────
   console.log("\n✏️  Editing screen...");

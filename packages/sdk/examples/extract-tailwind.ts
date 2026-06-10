@@ -21,11 +21,10 @@ const screen = (
 ).first;
 console.log(`✅ Screen generated: ${screen.id}`);
 
-const htmlOrUrl = await screen.getHtml();
-let html = htmlOrUrl;
+// getHtml() returns the HTML content directly (getHtmlUrl() for the URL)
+let html = await screen.getHtml();
 
-// If getHtml() returns a download URL, fetch the actual HTML content
-if (htmlOrUrl.startsWith("http")) {
+if (false) {
   console.log(`📥 Fetching HTML from ${htmlOrUrl}...`);
   const response = await fetch(htmlOrUrl);
   if (!response.ok) {

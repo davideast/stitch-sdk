@@ -60,7 +60,7 @@ try {
 
   for (let i = 0; i < variantScreens.length; i++) {
     const screen = variantScreens[i];
-    const htmlUrl = await screen.getHtml();
+    const htmlUrl = await screen.getHtmlUrl();
     console.log(`\n✨ Variant ${i + 1} (${screen.id}):`);
     console.log(`   📄 HTML URL: ${htmlUrl}`);
   }

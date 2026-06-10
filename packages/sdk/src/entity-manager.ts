@@ -31,6 +31,23 @@ export class EntityManager {
   private cache = new Map<string, any>();
   private client: any;
 
+  /**
+   * Canonical implementations by entityKey. Extension modules (e.g.
+   * project-ext, screen-ext) register themselves here so that EVERY
+   * resolve — including generated self-references like Screen.edit
+   * returning Screens — instantiates the extended class, without the
+   * generated base module ever importing its own extension (which
+   * would be an ESM cycle with TDZ hazards).
+   */
+  private static implementations = new Map<string, new (...args: any[]) => any>();
+
+  static registerImplementation(
+    entityKey: string,
+    ctor: new (...args: any[]) => any,
+  ): void {
+    EntityManager.implementations.set(entityKey, ctor);
+  }
+
   constructor(client: any) {
     this.client = client;
   }
@@ -123,9 +140,13 @@ export class EntityManager {
     parsedValues: Record<string, string>,
     data: any,
   ): T {
+    // Upgrade to the registered extension implementation when one exists
+    const entityKey: string =
+      (EntityClass as any).entityKey ?? EntityClass.name;
+    const Impl = EntityManager.implementations.get(entityKey) ?? EntityClass;
     // Direct instantiation is restricted for users, but allowed here.
     // Constructors reject raw strings; identity is carried via parsedValues.
-    const instance = new EntityClass(
+    const instance = new Impl(
       this.client,
       typeof data === "object" ? data : undefined,
     ) as any;

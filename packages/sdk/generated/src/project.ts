@@ -3,14 +3,14 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:916181fe773d...)
+        domain-map.json     (sha256:ba4df40dfd8a...)
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
 import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
 import { GenerateScreenFromTextResponse, ListScreensResponse, GetScreenResponse, CreateDesignSystemResponse, ListDesignSystemsResponse, UploadDesignMdResponse, CreateDesignSystemFromDesignMdResponse } from "./responses.generated.js";
-import { Screen } from "./screen.js";
+import { Screen } from "../../src/screen-ext.js";
 import { DesignSystem } from "./designsystem.js";
 
 /** A Stitch project containing screens. */
@@ -107,7 +107,7 @@ export class Project {
     async uploadDesignMd(designMdBase64: string): Promise<any> {
         try {
           const raw = await this.client.callTool<UploadDesignMdResponse>("upload_design_md", { projectId: this.projectId, designMdBase64 });
-          return raw || "";
+          return raw;
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }

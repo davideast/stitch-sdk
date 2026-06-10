@@ -158,22 +158,22 @@ const BINDING_CASES: Record<string, () => Promise<void>> = {
       "var-3",
     ]);
   },
-  "Screen.getHtml": async () => {
+  "Screen.getHtmlUrl": async () => {
     arm("get_screen");
     const bare = client.entities.resolve(Screen, ["projectId", "screenId"], {
       projectId: "p-fix",
       screenId: "s-9",
     });
-    const url = await bare.getHtml();
+    const url = await bare.getHtmlUrl();
     expect(url).toBe("https://files.example/s-1.html");
   },
-  "Screen.getImage": async () => {
+  "Screen.getImageUrl": async () => {
     arm("get_screen");
     const bare = client.entities.resolve(Screen, ["projectId", "screenId"], {
       projectId: "p-fix",
       screenId: "s-8",
     });
-    const url = await bare.getImage();
+    const url = await bare.getImageUrl();
     expect(url).toBe("https://files.example/s-1.png");
   },
   "DesignSystem.update": async () => {

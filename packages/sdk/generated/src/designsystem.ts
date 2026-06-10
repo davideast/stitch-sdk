@@ -3,14 +3,14 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:916181fe773d...)
+        domain-map.json     (sha256:ba4df40dfd8a...)
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
 import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
 import { UpdateDesignSystemResponse, ApplyDesignSystemResponse } from "./responses.generated.js";
-import { Screen } from "./screen.js";
+import { Screen } from "../../src/screen-ext.js";
 
 /** Represents a visual theme or branding applied to projects and screens. */
 export class DesignSystem {

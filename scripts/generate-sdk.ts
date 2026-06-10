@@ -696,7 +696,19 @@ function generateReturnExpression(
     return `this.client.entities.resolve(${binding.returns.class}, ${keys}, ${dataExpr})`;
   }
 
-  return `${projectionExpr} || ""`;
+  // Typed primitive returns with a real projection: a missing value is a
+  // NOT_FOUND error, never a silent empty string (the old `|| ""`).
+  if (projection.length > 0) {
+    const pathDesc = projection.map((s) => s.prop).join(".");
+    return (
+      `const _value = ${projectionExpr};\n` +
+      `  if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "${binding.tool} response has no ${pathDesc} for this resource", recoverable: false });\n` +
+      `  return _value`
+    );
+  }
+
+  // Direct return — the raw response itself
+  return projectionExpr;
 }
 
 // ── Constructor Body Builder ──────────────────────────────────
@@ -739,6 +751,14 @@ function buildMethodBody(
   statements.push(
     `  const raw = await this.client.callTool<${responseName}>("${binding.tool}", ${generateArgsObject(binding.args)});`,
   );
+  if (binding.cache?.writeBack) {
+    statements.push(
+      `  // writeBack: merge the response into this.data so the next call hits the cache`,
+    );
+    statements.push(
+      `  if (raw && typeof raw === "object") this.data = { ...this.data, ...raw };`,
+    );
+  }
   const retExpr = generateReturnExpression(binding, className, domainMap);
   // If retExpr contains newlines, it has guard statements — don't wrap in return
   if (retExpr.includes("\n")) {

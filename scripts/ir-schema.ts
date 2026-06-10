@@ -158,6 +158,11 @@ export const CacheSpec = z
     projection: z.array(ProjectionStep),
     /** Human-readable description of why this field is cached */
     description: z.string(),
+    /**
+     * Merge the API response back into this.data after a cache miss,
+     * so subsequent calls hit the cache instead of refetching.
+     */
+    writeBack: z.boolean().optional(),
   })
   .strict()
   .refine(
