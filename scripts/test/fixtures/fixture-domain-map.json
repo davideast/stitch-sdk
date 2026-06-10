@@ -83,14 +83,14 @@
       "args": {
         "gizmoId": { "from": "self" },
         "prompt": { "from": "param" },
-        "mode": { "from": "param", "optional": true }
+        "mode": { "from": "param", "optional": true, "default": "FAST" }
       },
       "returns": {
         "class": "Widget",
         "projection": [
           { "prop": "outputComponents", "find": "design.widgets" },
           { "prop": "design" },
-          { "prop": "widgets", "index": 0 }
+          { "prop": "widgets", "index": 0, "acknowledgeSingle": true }
         ]
       }
     },

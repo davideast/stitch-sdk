@@ -105,7 +105,7 @@ export class Gizmo {
      */
     async spawnFirst(prompt: string, options?: { mode?: "FAST" | "SLOW" }): Promise<Widget> {
         try {
-          const raw = await this.client.callTool<SpawnWidgetsResponse>("spawn_widgets", { gizmoId: this.gizmoId, prompt, mode: options?.mode });
+          const raw = await this.client.callTool<SpawnWidgetsResponse>("spawn_widgets", { gizmoId: this.gizmoId, prompt, mode: options?.mode ?? "FAST" });
           const _projected = (raw?.outputComponents ?? []).find((c: any) => c?.design?.widgets != null)?.design?.widgets?.[0];
           if (!_projected) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from spawn_widgets: expected object at projection path", recoverable: false });
           return this.client.entities.resolve(Widget, ["gizmoId","widgetId"], { ..._projected, gizmoId: this.gizmoId })

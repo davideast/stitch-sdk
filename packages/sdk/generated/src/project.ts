@@ -38,7 +38,7 @@ export class Project {
      */
     async generate(prompt: string, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Screen> {
         try {
-          const raw = await this.client.callTool<GenerateScreenFromTextResponse>("generate_screen_from_text", { projectId: this.projectId, prompt, deviceType: options?.deviceType, modelId: options?.modelId });
+          const raw = await this.client.callTool<GenerateScreenFromTextResponse>("generate_screen_from_text", { projectId: this.projectId, prompt, deviceType: options?.deviceType ?? "DESKTOP", modelId: options?.modelId });
           const _projected = (raw?.outputComponents ?? []).find((c: any) => c?.design?.screens != null)?.design?.screens?.[0];
           if (!_projected) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from generate_screen_from_text: expected object at projection path", recoverable: false });
           return this.client.entities.resolve(Screen, ["projectId","screenId"], { ..._projected, projectId: this.projectId })

@@ -117,39 +117,47 @@ export function resolveRef(
 
 /**
  * Validate that a projection path resolves against a JSON Schema.
- * Returns the schema node at the end of the projection, or throws
- * with a diagnostic error if a property doesn't exist.
+ *
+ * Semantics MATCH EMISSION exactly:
+ *  - plain prop access on an array schema is an ERROR (the emitted
+ *    `?.prop` chain would yield undefined at runtime) — use index/each/find
+ *  - `find` dot-paths are validated against the array item schema
+ *  - `index`/`each` on a non-array property is an ERROR
+ *
+ * Returns lint warnings: applying index/find to an UNBOUNDED array
+ * silently truncates data unless the step sets acknowledgeSingle
+ * (this is the exact shape of the generate() multi-screen bug).
  */
 export function validateProjection(
   projection: ProjectionStep[],
   outputSchema: ToolSchema | null | undefined,
   bindingLabel: string,
-): void {
-  if (!outputSchema) return; // No schema to validate against
+): string[] {
+  if (!outputSchema) return []; // No schema to validate against
 
+  const warnings: string[] = [];
   let currentSchema: ToolSchema | undefined = outputSchema;
   const rootSchema = outputSchema;
+  const deref = (s: ToolSchema | undefined): ToolSchema | undefined =>
+    s?.$ref ? resolveRef(rootSchema, s.$ref) : s;
 
   for (let i = 0; i < projection.length; i++) {
     const step = projection[i];
+    currentSchema = deref(currentSchema);
 
-    // Resolve $ref if present
-    if (currentSchema?.$ref) {
-      currentSchema = resolveRef(rootSchema, currentSchema.$ref);
-    }
-
-    // If current is an array schema and we're using each/index, unwrap items
-    if (currentSchema?.type === "array" && currentSchema?.items) {
-      currentSchema = currentSchema.items;
-      if (currentSchema?.$ref) {
-        currentSchema = resolveRef(rootSchema, currentSchema.$ref);
-      }
+    if (currentSchema?.type === "array") {
+      throw new Error(
+        `❌ Binding "${bindingLabel}" projection step ${i + 1}: ` +
+          `cannot access property "${step.prop}" on an ARRAY schema.\n` +
+          `   The emitted optional chain would be undefined at runtime.\n` +
+          `   Fix: add "index", "each", or "find" to the previous step.`,
+      );
     }
 
     const props = currentSchema?.properties;
     if (!props) {
       // Can't validate further (schema is too loose)
-      return;
+      return warnings;
     }
 
     if (!(step.prop in props)) {
@@ -163,24 +171,73 @@ export function validateProjection(
     }
 
     // Advance to the property's schema
-    currentSchema = props[step.prop];
+    currentSchema = deref(props[step.prop]);
 
-    // Resolve $ref
-    if (currentSchema?.$ref) {
-      currentSchema = resolveRef(rootSchema, currentSchema.$ref);
-    }
-
-    // If accessing array items (index or each), unwrap to items schema
-    if (
-      (step.index !== undefined || step.each) &&
-      currentSchema?.type === "array" &&
-      currentSchema?.items
-    ) {
-      currentSchema = currentSchema.items;
-      if (currentSchema?.$ref) {
-        currentSchema = resolveRef(rootSchema, currentSchema.$ref);
+    if (step.find) {
+      if (currentSchema?.type !== "array") {
+        throw new Error(
+          `❌ Binding "${bindingLabel}" projection step ${i + 1}: ` +
+            `"find" requires an array property, but "${step.prop}" is not an array.`,
+        );
       }
+      lintUnbounded(currentSchema, step, bindingLabel, i, warnings, "find");
+      const itemSchema = deref(currentSchema.items);
+      // Validate the dot-path against the item schema
+      let node: ToolSchema | undefined = itemSchema;
+      for (const part of step.find.split(".")) {
+        node = deref(node);
+        if (node?.type === "array") node = deref(node.items);
+        const nodeProps = node?.properties;
+        if (!nodeProps) break; // loose — stop validating the path
+        if (!(part in nodeProps)) {
+          throw new Error(
+            `❌ Binding "${bindingLabel}" projection step ${i + 1}: ` +
+              `find path "${step.find}": property "${part}" not found in item schema.\n` +
+              `   Available properties: ${Object.keys(nodeProps).join(", ")}`,
+          );
+        }
+        node = nodeProps[part];
+      }
+      // After find we are positioned ON the found element
+      currentSchema = itemSchema;
+      continue;
     }
+
+    if (step.index !== undefined || step.each) {
+      if (currentSchema?.type !== "array" || !currentSchema.items) {
+        throw new Error(
+          `❌ Binding "${bindingLabel}" projection step ${i + 1}: ` +
+            `"${step.index !== undefined ? "index" : "each"}" used on ` +
+            `non-array property "${step.prop}".`,
+        );
+      }
+      if (step.index !== undefined) {
+        lintUnbounded(currentSchema, step, bindingLabel, i, warnings, "index");
+      }
+      currentSchema = deref(currentSchema.items);
+    }
+    // Plain prop access: if this left us on an array and another step
+    // follows, the array check at the top of the next iteration throws.
+  }
+
+  return warnings;
+}
+
+function lintUnbounded(
+  arraySchema: ToolSchema,
+  step: ProjectionStep,
+  bindingLabel: string,
+  stepIndex: number,
+  warnings: string[],
+  kind: "index" | "find",
+): void {
+  if ((arraySchema as any).maxItems === undefined && !step.acknowledgeSingle) {
+    warnings.push(
+      `⚠️  Binding "${bindingLabel}" step ${stepIndex + 1}: "${kind}" takes ` +
+        `a single element from the UNBOUNDED array "${step.prop}" — other ` +
+        `elements are silently dropped. If intentional, set ` +
+        `"acknowledgeSingle": true on the step; otherwise use "each".`,
+    );
   }
 }
 
@@ -324,11 +381,16 @@ function emitFlatMapProjection(
 /**
  * Emit TypeScript code for a cache check projection.
  * e.g. [screenshot, downloadUrl] → this.data?.screenshot?.downloadUrl
+ * Supports `index` ([{cards, index: 0}] → this.data?.cards?.[0]);
+ * `each`/`find` are rejected by the IR schema (no cache semantics).
  */
 export function emitCacheProjection(steps: ProjectionStep[]): string {
   let code = "this.data";
   for (const step of steps) {
     code += `?.${step.prop}`;
+    if (step.index !== undefined) {
+      code += `?.[${step.index}]`;
+    }
   }
   return code;
 }
@@ -539,9 +601,14 @@ export function generateArgsObject(args: Record<string, ArgSpec>): string {
       entries.push(`${name}: [this.${field}]`);
     } else if (spec.from === "param") {
       const paramName = spec.rename || name;
-      // Optional params live on the trailing options object (D12)
+      // Optional params live on the trailing options object (D12);
+      // a declared default is applied when the caller omits the value.
       if (spec.optional) {
-        entries.push(`${name}: options?.${paramName}`);
+        const defaultSuffix =
+          spec.default !== undefined
+            ? ` ?? ${JSON.stringify(spec.default)}`
+            : "";
+        entries.push(`${name}: options?.${paramName}${defaultSuffix}`);
       } else {
         entries.push(name === paramName ? name : `${name}: ${paramName}`);
       }
@@ -685,17 +752,23 @@ async function main() {
 
   // Validate projections against output schemas
   console.log("🔍 Validating projections against output schemas...");
+  const lintWarnings: string[] = [];
   for (const binding of domainMap.bindings) {
     const tool = manifest.find((t) => t.name === binding.tool);
     if (!tool?.outputSchema) continue;
 
-    validateProjection(
-      binding.returns.projection,
-      tool.outputSchema,
-      `${binding.class}.${binding.method}`,
+    lintWarnings.push(
+      ...validateProjection(
+        binding.returns.projection,
+        tool.outputSchema,
+        `${binding.class}.${binding.method}`,
+      ),
     );
   }
   console.log("  ✓ All projections valid against output schemas");
+  for (const warning of lintWarnings) {
+    console.warn(warning);
+  }
 
   // ── Side-effect validation ───────────────────────────────────
   // Ensure handwritten extension methods don't shadow generated methods,

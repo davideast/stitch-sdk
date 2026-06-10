@@ -577,3 +577,128 @@ describe("generateArgsObject", () => {
     expect(result).toContain("prompt");
   });
 });
+
+// ── validateProjection: strict array semantics + lint [V1_PLAN §1.2] ──
+
+describe("validateProjection strict semantics", () => {
+  const schema = {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      screens: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { name: { type: "string" } },
+        },
+      },
+      comps: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            design: {
+              type: "object",
+              properties: {
+                widgets: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { id: { type: "string" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  test("rejects plain prop access THROUGH an array (validation == emission)", () => {
+    expect(() =>
+      validateProjection(
+        [{ prop: "screens" }, { prop: "name" }],
+        schema,
+        "T.m",
+      ),
+    ).toThrow(/ARRAY schema/);
+  });
+
+  test("terminal array access without index/each is fine (returns the array)", () => {
+    expect(() =>
+      validateProjection([{ prop: "screens" }], schema, "T.m"),
+    ).not.toThrow();
+  });
+
+  test("index on a non-array property throws", () => {
+    expect(() =>
+      validateProjection([{ prop: "title", index: 0 }], schema, "T.m"),
+    ).toThrow(/non-array/);
+  });
+
+  test("find on a non-array property throws", () => {
+    expect(() =>
+      validateProjection([{ prop: "title", find: "x.y" }], schema, "T.m"),
+    ).toThrow(/requires an array/);
+  });
+
+  test("find dot-path is validated against the item schema", () => {
+    expect(() =>
+      validateProjection(
+        [{ prop: "comps", find: "design.bogus" }],
+        schema,
+        "T.m",
+      ),
+    ).toThrow(/bogus/);
+    expect(() =>
+      validateProjection(
+        [
+          { prop: "comps", find: "design.widgets", acknowledgeSingle: true },
+          { prop: "design" },
+          { prop: "widgets", each: true },
+        ],
+        schema,
+        "T.m",
+      ),
+    ).not.toThrow();
+  });
+
+  test("LINT: warns when index truncates an unbounded array", () => {
+    const warnings = validateProjection(
+      [{ prop: "screens", index: 0 }],
+      schema,
+      "T.m",
+    );
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("acknowledgeSingle");
+  });
+
+  test("LINT: acknowledgeSingle suppresses the warning", () => {
+    const warnings = validateProjection(
+      [{ prop: "screens", index: 0, acknowledgeSingle: true }],
+      schema,
+      "T.m",
+    );
+    expect(warnings).toEqual([]);
+  });
+});
+
+// ── default emission + cache index [V1_PLAN §1.3] ──
+
+describe("ArgParam default emission", () => {
+  test("optional param with default → options?.x ?? default", () => {
+    const result = generateArgsObject({
+      deviceType: { from: "param", optional: true, default: "DESKTOP" },
+    });
+    expect(result).toContain('deviceType: options?.deviceType ?? "DESKTOP"');
+  });
+});
+
+describe("emitCacheProjection with index", () => {
+  test("index step → this.data?.cards?.[0]?.url", () => {
+    expect(
+      emitCacheProjection([{ prop: "cards", index: 0 }, { prop: "url" }]),
+    ).toBe("this.data?.cards?.[0]?.url");
+  });
+});

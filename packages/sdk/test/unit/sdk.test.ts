@@ -348,7 +348,9 @@ describe("SDK Unit Tests", () => {
         {
           projectId: projectId,
           prompt: prompt,
-          deviceType: undefined,
+          // IR declares optional deviceType with default "DESKTOP" — the
+          // default is applied when the caller omits options [V1_PLAN §1.3]
+          deviceType: "DESKTOP",
           modelId: undefined,
         },
       );
