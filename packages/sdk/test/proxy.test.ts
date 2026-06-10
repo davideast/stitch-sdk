@@ -62,19 +62,34 @@ describe("StitchProxy", () => {
     );
   });
 
-  it("should initialize with accessToken instead of apiKey", () => {
+  it("should initialize with accessToken + quotaProjectId instead of apiKey", () => {
     delete process.env.STITCH_API_KEY;
     delete process.env.STITCH_ACCESS_TOKEN;
-    const proxy = new StitchProxy({ accessToken: "test-token" });
+    const proxy = new StitchProxy({
+      accessToken: "test-token",
+      quotaProjectId: "test-project",
+    });
     expect(proxy).toBeDefined();
+  });
+
+  it("should throw if accessToken is provided without a project (aligned with client)", () => {
+    delete process.env.STITCH_API_KEY;
+    delete process.env.STITCH_ACCESS_TOKEN;
+    delete process.env.STITCH_PROJECT_ID;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    expect(() => new StitchProxy({ accessToken: "test-token" })).toThrow(
+      "Invalid configuration: provide either 'apiKey' OR ('accessToken' + 'projectId').",
+    );
   });
 
   it("should initialize with STITCH_ACCESS_TOKEN env var", () => {
     delete process.env.STITCH_API_KEY;
     process.env.STITCH_ACCESS_TOKEN = "env-token";
+    process.env.STITCH_PROJECT_ID = "env-project";
     const proxy = new StitchProxy({});
     expect(proxy).toBeDefined();
     delete process.env.STITCH_ACCESS_TOKEN;
+    delete process.env.STITCH_PROJECT_ID;
   });
 
   it("should connect to stitch and fetch tools on start", async () => {

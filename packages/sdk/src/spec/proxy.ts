@@ -29,7 +29,7 @@ export const StitchProxyConfigSchema = z.object({
   /** Quota project ID for billing. Required with accessToken auth. Falls back to STITCH_PROJECT_ID or GOOGLE_CLOUD_PROJECT. */
   quotaProjectId: z.string().optional(),
 
-  /** Target Stitch MCP URL. Default: https://stitch.googleapis.com/mcp */
+  /** Target Stitch MCP URL. Falls back to STITCH_BASE_URL, then STITCH_MCP_URL. Default: https://stitch.googleapis.com/mcp */
   url: z.string().default(DEFAULT_STITCH_API_URL),
 
   /** Name of the local proxy server. Default: stitch-proxy */
@@ -40,6 +40,10 @@ export const StitchProxyConfigSchema = z.object({
 
   /** Protocol version to use for Stitch JSON-RPC connection. Default: '2024-11-05' */
   protocolVersion: z.string().default("2024-11-05"),
+}).refine((data) => !data.accessToken || data.apiKey || !!data.quotaProjectId, {
+  // Aligned with StitchConfigSchema: token auth needs a quota project.
+  message:
+    "Invalid configuration: provide either 'apiKey' OR ('accessToken' + 'projectId').",
 });
 
 export type StitchProxyConfig = z.infer<typeof StitchProxyConfigSchema>;

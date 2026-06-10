@@ -25,6 +25,7 @@ export const StitchErrorCode = z.enum([
   "RATE_LIMITED",
   "NETWORK_ERROR",
   "VALIDATION_ERROR",
+  "CLIENT_CLOSED",
   "UNKNOWN_ERROR",
 ]);
 

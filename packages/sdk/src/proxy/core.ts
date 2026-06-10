@@ -41,7 +41,12 @@ export class StitchProxy implements StitchProxySpec {
         inputConfig?.quotaProjectId ||
         process.env.STITCH_PROJECT_ID ||
         process.env.GOOGLE_CLOUD_PROJECT,
-      url: inputConfig?.url || process.env.STITCH_MCP_URL,
+      // Precedence: explicit config > STITCH_BASE_URL > STITCH_MCP_URL
+      // (STITCH_MCP_URL stays accepted for the proxy binary).
+      url:
+        inputConfig?.url ||
+        process.env.STITCH_BASE_URL ||
+        process.env.STITCH_MCP_URL,
       name: inputConfig?.name,
       version: inputConfig?.version,
     };

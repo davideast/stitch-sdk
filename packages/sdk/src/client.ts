@@ -27,6 +27,63 @@ import { buildAuthHeaders as buildBaseAuthHeaders } from "./auth.js";
 import { SDK_VERSION } from "./version.js";
 import { repairToolSchemas } from "./schema-repair.js";
 import { EntityManager } from "./entity-manager.js";
+import { debugLog } from "./debug.js";
+
+/** Read an env var, treating empty strings as unset. */
+function env(name: string): string | undefined {
+  return process.env[name] || undefined;
+}
+
+/** Fires the STITCH_HOST deprecation warning at most once per process. */
+let warnedStitchHostAlias = false;
+
+/** Test-only: re-arm the once-per-process STITCH_HOST deprecation warning. */
+export function __resetStitchHostWarning(): void {
+  warnedStitchHostAlias = false;
+}
+
+/**
+ * Resolve a config input against the environment (D5 REVISED).
+ *
+ * Precedence: explicit config > STITCH_* vars > legacy aliases.
+ *   - apiKey:      input ?? STITCH_API_KEY
+ *   - accessToken: input ?? STITCH_ACCESS_TOKEN
+ *   - projectId:   input ?? STITCH_PROJECT_ID ?? GOOGLE_CLOUD_PROJECT
+ *                  (GOOGLE_CLOUD_PROJECT is the GCP-wide convention and
+ *                  stays first-class — no warning)
+ *   - baseUrl:     input ?? STITCH_BASE_URL ?? STITCH_HOST
+ *                  (STITCH_HOST is a deprecated alias — warns once per
+ *                  process, removed in 2.0)
+ *
+ * Shared by StitchToolClient and the singleton so both resolve the exact
+ * same env set (the singleton derives its cache key from this output).
+ */
+export function resolveConfigWithEnv(
+  input?: Partial<StitchConfig>,
+): Partial<StitchConfig> {
+  let baseUrl = input?.baseUrl ?? env("STITCH_BASE_URL");
+  if (baseUrl === undefined) {
+    const legacyHost = env("STITCH_HOST");
+    if (legacyHost !== undefined) {
+      baseUrl = legacyHost;
+      if (!warnedStitchHostAlias) {
+        warnedStitchHostAlias = true;
+        console.warn(
+          "[stitch-sdk] STITCH_HOST is a deprecated alias for STITCH_BASE_URL and will be removed in 2.0. Set STITCH_BASE_URL instead.",
+        );
+      }
+    }
+  }
+  return {
+    apiKey: input?.apiKey ?? env("STITCH_API_KEY"),
+    accessToken: input?.accessToken ?? env("STITCH_ACCESS_TOKEN"),
+    projectId:
+      input?.projectId ?? env("STITCH_PROJECT_ID") ?? env("GOOGLE_CLOUD_PROJECT"),
+    baseUrl,
+    timeout: input?.timeout,
+    retry: input?.retry,
+  };
+}
 
 /**
  * Parse a raw MCP CallToolResult envelope into the tool's payload.
@@ -112,6 +169,7 @@ export class StitchToolClient implements StitchToolClientSpec {
   private transport: StreamableHTTPClientTransport | null = null;
   private config: StitchConfig;
   private isConnected: boolean = false;
+  private isClosed: boolean = false;
   private connectPromise: Promise<void> | null = null;
   private localVirtualTools: VirtualToolDefinition[] = [];
   public entities: EntityManager;
@@ -121,22 +179,37 @@ export class StitchToolClient implements StitchToolClientSpec {
       localVirtualTools?: VirtualToolDefinition[];
     },
   ) {
-    const rawConfig = {
-      accessToken: inputConfig?.accessToken || process.env.STITCH_ACCESS_TOKEN,
-      apiKey: inputConfig?.apiKey || process.env.STITCH_API_KEY,
-      projectId: inputConfig?.projectId || process.env.GOOGLE_CLOUD_PROJECT,
-      baseUrl: inputConfig?.baseUrl,
-      timeout: inputConfig?.timeout,
-      retry: inputConfig?.retry,
-    };
-    this.config = StitchConfigSchema.parse(rawConfig);
+    this.config = StitchConfigSchema.parse(resolveConfigWithEnv(inputConfig));
     this.localVirtualTools = inputConfig?.localVirtualTools || [];
     this.entities = new EntityManager(this);
 
-    this.client = new Client(
+    this.client = this.createMcpClient();
+  }
+
+  /**
+   * A fresh MCP Client is required per transport: calling connect() twice
+   * on a single Client instance is undefined behavior in the MCP SDK.
+   */
+  private createMcpClient(): Client {
+    return new Client(
       { name: "stitch-core-client", version: SDK_VERSION },
       { capabilities: {} },
     );
+  }
+
+  /**
+   * Guard for the terminal close() state. Once close() has been called,
+   * this client is permanently unusable — create a new StitchToolClient.
+   */
+  private assertNotClosed(): void {
+    if (this.isClosed) {
+      throw new StitchError({
+        code: "CLIENT_CLOSED",
+        message:
+          "This client is closed: client.close() was called; create a new StitchToolClient to make further calls.",
+        recoverable: false,
+      });
+    }
   }
 
   /**
@@ -158,6 +231,7 @@ export class StitchToolClient implements StitchToolClientSpec {
   }
 
   async connect() {
+    this.assertNotClosed();
     if (this.isConnected) return;
     if (this.connectPromise) return this.connectPromise;
 
@@ -170,6 +244,17 @@ export class StitchToolClient implements StitchToolClientSpec {
   }
 
   private async doConnect() {
+    // Reconnect path: tear down any previous transport BEFORE creating a
+    // new one, so failed/stale connections never leave dangling sockets.
+    if (this.transport) {
+      await this.transport.close().catch(() => {});
+      this.transport = null;
+      // The old Client is bound to the closed transport — recreate it.
+      this.client = this.createMcpClient();
+    }
+
+    debugLog("lifecycle", "connecting", { baseUrl: this.config.baseUrl });
+
     // Create transport with auth headers injected per-instance (no global fetch mutation)
     this.transport = new StreamableHTTPClientTransport(
       new URL(this.config.baseUrl),
@@ -181,12 +266,17 @@ export class StitchToolClient implements StitchToolClientSpec {
     );
 
     this.transport.onerror = (err) => {
-      console.error("Stitch Transport Error:", err);
+      // debugLog only — the transport error object may embed request info
+      // (headers); log err.message exclusively so credentials can't leak.
+      debugLog("transport", "transport error", {
+        message: err instanceof Error ? err.message : String(err),
+      });
       this.isConnected = false;
     };
 
     await this.client.connect(this.transport);
     this.isConnected = true;
+    debugLog("lifecycle", "connected");
   }
 
   /**
@@ -197,7 +287,11 @@ export class StitchToolClient implements StitchToolClientSpec {
    * errors carry no Retry-After header, so nothing else is honored.
    */
   async callTool<T>(name: string, args: Record<string, any>): Promise<T> {
+    this.assertNotClosed();
     if (!this.isConnected) await this.connect();
+
+    // Log arg KEYS only — prompt/content values may be sensitive.
+    debugLog("tool", `callTool ${name}`, { argKeys: Object.keys(args) });
 
     const localTool = this.localVirtualTools.find((t) => t.name === name);
     if (localTool) {
@@ -224,6 +318,10 @@ export class StitchToolClient implements StitchToolClientSpec {
           err instanceof StitchError &&
           err.code === "RATE_LIMITED";
         if (!isRetryable || attempt >= maxAttempts - 1) throw err;
+        debugLog("retry", `RATE_LIMITED on ${name}; backing off`, {
+          attempt: attempt + 1,
+          maxAttempts,
+        });
         await sleep(computeBackoffMs(attempt, retry.baseMs, retry.maxMs));
       }
     }
@@ -242,6 +340,7 @@ export class StitchToolClient implements StitchToolClientSpec {
    *   Neither means "API keys are unsupported." See upload-handler.ts for full context.
    */
   async httpPost<T>(path: string, body: unknown): Promise<T> {
+    this.assertNotClosed();
     const url = `${this.config.baseUrl.replace(/\/mcp$/, "").replace(/\/$/, "")}/v1/${path}`;
     const response = await fetch(url, {
       method: "POST",
@@ -270,6 +369,7 @@ export class StitchToolClient implements StitchToolClientSpec {
   }
 
   async listTools() {
+    this.assertNotClosed();
     if (!this.isConnected) await this.connect();
 
     // CRITICAL: We use a raw request() instead of this.client.listTools()
@@ -302,10 +402,20 @@ export class StitchToolClient implements StitchToolClientSpec {
     };
   }
 
+  /**
+   * Close the connection. TERMINAL: after close(), every subsequent
+   * connect/callTool/httpPost/listTools throws CLIENT_CLOSED — create a
+   * new StitchToolClient instead. Calling close() again is a no-op.
+   */
   async close() {
+    if (this.isClosed) return;
+    this.isClosed = true;
+    this.isConnected = false;
+    this.connectPromise = null;
+    debugLog("lifecycle", "close() called — client is now terminal");
     if (this.transport) {
-      await this.transport.close();
-      this.isConnected = false;
+      await this.transport.close().catch(() => {});
+      this.transport = null;
     }
   }
 }

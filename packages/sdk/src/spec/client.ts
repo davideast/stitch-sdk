@@ -26,10 +26,10 @@ export const StitchConfigSchema = z
     /** OAuth access token for user-authenticated requests. Falls back to STITCH_ACCESS_TOKEN. */
     accessToken: z.string().optional(),
 
-    /** Google Cloud project ID. Required for OAuth, optional for API Key. Falls back to GOOGLE_CLOUD_PROJECT. */
+    /** Google Cloud project ID. Required for OAuth, optional for API Key. Falls back to STITCH_PROJECT_ID, then GOOGLE_CLOUD_PROJECT (both first-class). */
     projectId: z.string().optional(),
 
-    /** Base URL for the Stitch MCP server. */
+    /** Base URL for the Stitch MCP server. Falls back to STITCH_BASE_URL (legacy alias STITCH_HOST, deprecated — removed in 2.0). */
     baseUrl: z.string().default(DEFAULT_STITCH_API_URL),
 
     /** Request timeout in milliseconds. Default: 300000 (5 min). */
@@ -64,7 +64,7 @@ export const StitchConfigSchema = z
     },
     {
       message:
-        "Authentication failed. Provide either 'apiKey' OR ('accessToken' + 'projectId').",
+        "Invalid configuration: provide either 'apiKey' OR ('accessToken' + 'projectId').",
     },
   );
 

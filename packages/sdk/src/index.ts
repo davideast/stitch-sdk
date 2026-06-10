@@ -28,7 +28,7 @@ export { downloadAssetsTool } from "./proxy/virtual-tools.js";
 export type { VirtualToolDefinition } from "./spec/client.js";
 
 // Singleton
-export { stitch } from "./singleton.js";
+export { stitch, resetStitchSingleton } from "./singleton.js";
 
 // Error handling
 export { StitchError, StitchErrorCode } from "./spec/errors.js";
