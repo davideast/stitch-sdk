@@ -13,6 +13,8 @@ import { Screen } from "./screen.js";
 
 /** Represents a visual theme or branding applied to projects and screens. */
 export class DesignSystem {
+    /** Stable identity-map key (minification-safe). */
+    static readonly entityKey = "DesignSystem";
     public readonly projectId!: string;
     public readonly assetId!: string;
     public data: any;

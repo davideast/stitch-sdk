@@ -12,6 +12,8 @@ import { EditScreensResponse, GenerateVariantsResponse, GetScreenResponse } from
 
 /** A generated UI screen. Provides access to HTML and screenshots. */
 export class Screen {
+    /** Stable identity-map key (minification-safe). */
+    static readonly entityKey = "Screen";
     public readonly projectId!: string;
     public readonly screenId!: string;
     public data: any;

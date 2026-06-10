@@ -1,3 +1,17 @@
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import { parseResourceName } from "./utils.js";
 
 /** Extract all ID segments from a standard resource name (e.g. projects/123/screens/456) */
@@ -22,55 +36,68 @@ export class EntityManager {
   }
 
   /**
-   * Resolves an entity instance, ensuring referential equality for the same ID.
-   * Logic is driven by the generated schema's reference keys.
+   * Resolves an entity instance, ensuring referential equality for the
+   * same fully-qualified identity.
+   *
+   * The cache key is the COMPOSITE of all reference keys (e.g.
+   * projectId + screenId), never just the last segment: the same screen
+   * ID under two different projects must yield two distinct instances.
+   *
+   * Entities whose identity cannot be fully derived from the data are
+   * returned UNCACHED — caching them under a partial or shared key
+   * would alias unrelated instances.
    */
   resolve<T>(
     EntityClass: new (...args: any[]) => T,
     referenceKeys: string[],
     data: any,
   ): T {
-    let canonicalId = "";
     const parsedValues: Record<string, string> = {};
+    const lastKey = referenceKeys[referenceKeys.length - 1];
 
     if (typeof data === "string") {
-      canonicalId = parseResourceName(data);
       Object.assign(parsedValues, parseAllSegments(data));
-      // Fallback if data is just the bare ID
-      if (!parsedValues[referenceKeys[referenceKeys.length - 1]]) {
-        parsedValues[referenceKeys[referenceKeys.length - 1]] = canonicalId;
+      // Bare ID: it can only ever satisfy the last reference key
+      if (lastKey && !parsedValues[lastKey]) {
+        parsedValues[lastKey] = parseResourceName(data);
       }
     } else if (data && typeof data === "object") {
-      if (data.name) {
-        canonicalId = parseResourceName(data.name);
+      if (typeof data.name === "string") {
         Object.assign(parsedValues, parseAllSegments(data.name));
-      } else {
-        // Fallback to reading the last reference key or 'id'
-        const lastKey = referenceKeys[referenceKeys.length - 1];
-        canonicalId = data[lastKey] || data.id || "";
       }
-
-      // Populate keys from data
+      // Explicit fields win over name-derived segments
       for (const key of referenceKeys) {
-        if (data[key]) {
-          parsedValues[key] = data[key];
-        }
+        if (data[key]) parsedValues[key] = data[key];
       }
-
-      // If the last key is still missing, fallback to id or canonicalId
-      const lastKey = referenceKeys[referenceKeys.length - 1];
-      if (!parsedValues[lastKey]) {
-        parsedValues[lastKey] = data.id || canonicalId;
+      if (lastKey && !parsedValues[lastKey] && data.id) {
+        parsedValues[lastKey] = data.id;
+      }
+      if (lastKey && !parsedValues[lastKey] && typeof data.name === "string") {
+        parsedValues[lastKey] = parseResourceName(data.name);
       }
     }
 
-    if (!canonicalId) {
-      // In cases where we just get an empty object or something, fallback
-      canonicalId = "unknown";
+    // Generated classes carry a static entityKey; EntityClass.name is the
+    // fallback but is unsafe under minified consumer bundles.
+    const entityKey: string =
+      (EntityClass as any).entityKey ?? EntityClass.name;
+    const keyValues = referenceKeys.map((k) => parsedValues[k]);
+    const identifiable =
+      referenceKeys.length > 0 &&
+      keyValues.every((v) => typeof v === "string" && v.length > 0);
+
+    if (!identifiable) {
+      if (process.env.STITCH_DEBUG) {
+        console.warn(
+          `[stitch-sdk] EntityManager: could not derive full identity ` +
+            `(${referenceKeys.join(", ")}) for ${entityKey}; ` +
+            `returning uncached instance.`,
+        );
+      }
+      return this.instantiate(EntityClass, referenceKeys, parsedValues, data);
     }
 
-    const className = EntityClass.name;
-    const cacheKey = `${className}:${canonicalId}`;
+    const cacheKey = `${entityKey}:${JSON.stringify(keyValues)}`;
 
     if (this.cache.has(cacheKey)) {
       const instance = this.cache.get(cacheKey);
@@ -80,21 +107,32 @@ export class EntityManager {
       return instance;
     }
 
+    const instance = this.instantiate(
+      EntityClass,
+      referenceKeys,
+      parsedValues,
+      data,
+    ) as any;
+    this.cache.set(cacheKey, instance);
+    return instance;
+  }
+
+  private instantiate<T>(
+    EntityClass: new (...args: any[]) => T,
+    referenceKeys: string[],
+    parsedValues: Record<string, string>,
+    data: any,
+  ): T {
     // Direct instantiation is restricted for users, but allowed here
     const instance = new EntityClass(this.client, data) as any;
-
-    // Assign reference keys dynamically based on parsed values
     for (const key of referenceKeys) {
       if (parsedValues[key]) {
         instance[key] = parsedValues[key];
       }
     }
-
     if (typeof instance.onCreate === "function") {
       instance.onCreate();
     }
-
-    this.cache.set(cacheKey, instance);
     return instance;
   }
 

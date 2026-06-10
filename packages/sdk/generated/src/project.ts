@@ -14,6 +14,8 @@ import { DesignSystem } from "./designsystem.js";
 
 /** A Stitch project containing screens. */
 export class Project {
+    /** Stable identity-map key (minification-safe). */
+    static readonly entityKey = "Project";
     public readonly projectId!: string;
     public data: any;
 

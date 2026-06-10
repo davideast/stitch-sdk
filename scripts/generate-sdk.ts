@@ -892,6 +892,15 @@ async function main() {
         ],
       });
     } else {
+      // Stable identity key for the EntityManager — class names are
+      // mangled by consumer minifiers, so never rely on EntityClass.name.
+      cls.addProperty({
+        name: "entityKey",
+        isStatic: true,
+        isReadonly: true,
+        initializer: `"${className}"`,
+        docs: [{ description: "Stable identity-map key (minification-safe)." }],
+      });
       // Declare fields
       for (const p of config.constructorParams) {
         cls.addProperty({
