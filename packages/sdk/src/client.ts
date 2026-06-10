@@ -21,7 +21,8 @@ import {
   StitchToolClientSpec,
   VirtualToolDefinition,
 } from "./spec/client.js";
-import { StitchError, StitchErrorCode } from "./spec/errors.js";
+import { StitchError } from "./spec/errors.js";
+import { classifyError, isRecoverable } from "./spec/error-mapping.js";
 import { buildAuthHeaders as buildBaseAuthHeaders } from "./auth.js";
 import { SDK_VERSION } from "./version.js";
 import { repairToolSchemas } from "./schema-repair.js";
@@ -40,37 +41,12 @@ export function parseToolResult<T>(result: any, name: string): T {
       .map((c: any) => (c.type === "text" ? c.text : ""))
       .join("");
 
-    let code: StitchErrorCode = "UNKNOWN_ERROR";
-    const lowerErrorText = errorText.toLowerCase();
-
-    if (
-      lowerErrorText.includes("rate limit") ||
-      lowerErrorText.includes("429")
-    ) {
-      code = "RATE_LIMITED";
-    } else if (
-      lowerErrorText.includes("not found") ||
-      lowerErrorText.includes("404")
-    ) {
-      code = "NOT_FOUND";
-    } else if (
-      lowerErrorText.includes("permission") ||
-      lowerErrorText.includes("403")
-    ) {
-      code = "PERMISSION_DENIED";
-    } else if (
-      lowerErrorText.includes("unauthorized") ||
-      lowerErrorText.includes("unauthenticated") ||
-      lowerErrorText.includes("invalid authentication") ||
-      lowerErrorText.includes("401")
-    ) {
-      code = "AUTH_FAILED";
-    }
+    const code = classifyError({ text: errorText });
 
     throw new StitchError({
       code,
       message: `Tool Call Failed [${name}]: ${errorText}`,
-      recoverable: code === "RATE_LIMITED",
+      recoverable: isRecoverable(code),
     });
   }
 
@@ -91,6 +67,31 @@ export function parseToolResult<T>(result: any, name: string): T {
 
   return anyResult as T;
 }
+
+/**
+ * Tools matching this pattern are idempotent reads and therefore safe to
+ * auto-retry. Generative/mutating tools (generate_*, edit_*, create_*, ...)
+ * are NEVER auto-retried: a retried generation duplicates minutes of work,
+ * burns quota, and can orphan screens server-side (V1_PLAN D6 revision).
+ */
+const RETRY_ELIGIBLE_TOOL = /^(get_|list_)/;
+
+/**
+ * Exponential backoff with full jitter:
+ *   delay = min(maxMs, baseMs * 2^attempt) * random(0..1)
+ *
+ * `rand` is injectable for deterministic tests.
+ */
+export function computeBackoffMs(
+  attempt: number,
+  baseMs: number,
+  maxMs: number,
+  rand: () => number = Math.random,
+): number {
+  return Math.min(maxMs, baseMs * 2 ** attempt) * rand();
+}
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
  * Authenticated tool pipe for the Stitch MCP Server.
@@ -126,6 +127,7 @@ export class StitchToolClient implements StitchToolClientSpec {
       projectId: inputConfig?.projectId || process.env.GOOGLE_CLOUD_PROJECT,
       baseUrl: inputConfig?.baseUrl,
       timeout: inputConfig?.timeout,
+      retry: inputConfig?.retry,
     };
     this.config = StitchConfigSchema.parse(rawConfig);
     this.localVirtualTools = inputConfig?.localVirtualTools || [];
@@ -189,6 +191,10 @@ export class StitchToolClient implements StitchToolClientSpec {
 
   /**
    * Generic tool caller with type support and error parsing.
+   *
+   * RATE_LIMITED failures on idempotent reads (get_* / list_*) are retried
+   * with exponential backoff + full jitter, per `config.retry`. MCP text
+   * errors carry no Retry-After header, so nothing else is honored.
    */
   async callTool<T>(name: string, args: Record<string, any>): Promise<T> {
     if (!this.isConnected) await this.connect();
@@ -198,13 +204,29 @@ export class StitchToolClient implements StitchToolClientSpec {
       return localTool.execute(this, args);
     }
 
-    const result = await this.client.callTool(
-      { name, arguments: args },
-      undefined,
-      { timeout: this.config.timeout },
-    );
+    const retry =
+      this.config.retry !== false && RETRY_ELIGIBLE_TOOL.test(name)
+        ? this.config.retry
+        : null;
+    const maxAttempts = retry ? retry.attempts : 1;
 
-    return this.parseToolResponse<T>(result, name);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const result = await this.client.callTool(
+          { name, arguments: args },
+          undefined,
+          { timeout: this.config.timeout },
+        );
+        return this.parseToolResponse<T>(result, name);
+      } catch (err) {
+        const isRetryable =
+          retry !== null &&
+          err instanceof StitchError &&
+          err.code === "RATE_LIMITED";
+        if (!isRetryable || attempt >= maxAttempts - 1) throw err;
+        await sleep(computeBackoffMs(attempt, retry.baseMs, retry.maxMs));
+      }
+    }
   }
 
   /**
@@ -230,28 +252,17 @@ export class StitchToolClient implements StitchToolClientSpec {
       body: JSON.stringify(body),
     });
 
+    // NO retry here: httpPost is used exclusively for mutating REST
+    // endpoints (BatchCreateScreens uploads). Auto-retrying a mutation
+    // risks duplicate server-side writes — the D6 idempotent-reads-only
+    // rule means retry lives in callTool, gated on get_*/list_* names.
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      const lowerText = text.toLowerCase();
-      let code: StitchErrorCode = "UNKNOWN_ERROR";
-      if (response.status === 429 || lowerText.includes("rate limit")) {
-        code = "RATE_LIMITED";
-      } else if (response.status === 404 || lowerText.includes("not found")) {
-        code = "NOT_FOUND";
-      } else if (response.status === 403 || lowerText.includes("permission")) {
-        code = "PERMISSION_DENIED";
-      } else if (
-        response.status === 401 ||
-        lowerText.includes("401") ||
-        lowerText.includes("unauthorized") ||
-        lowerText.includes("unauthenticated")
-      ) {
-        code = "AUTH_FAILED";
-      }
+      const code = classifyError({ status: response.status, text });
       throw new StitchError({
         code,
         message: `HTTP ${response.status}: ${text || response.statusText}`,
-        recoverable: code === "RATE_LIMITED",
+        recoverable: isRecoverable(code),
       });
     }
 

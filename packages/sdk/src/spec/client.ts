@@ -34,6 +34,27 @@ export const StitchConfigSchema = z
 
     /** Request timeout in milliseconds. Default: 300000 (5 min). */
     timeout: z.number().default(300_000),
+
+    /**
+     * Retry policy for RATE_LIMITED failures on idempotent reads
+     * (`get_*` / `list_*` tools only — generative/mutating tools are
+     * never auto-retried). Set to `false` to disable retries entirely.
+     */
+    retry: z
+      .union([
+        z.literal(false),
+        z
+          .object({
+            /** Total attempts including the first call. */
+            attempts: z.number().int().min(1).max(10).default(3),
+            /** Base delay in ms for exponential backoff. */
+            baseMs: z.number().default(250),
+            /** Upper bound on a single backoff delay in ms. */
+            maxMs: z.number().default(4000),
+          })
+          .strict(),
+      ])
+      .default({ attempts: 3, baseMs: 250, maxMs: 4000 }),
   })
   .refine(
     (data) => {

@@ -19,6 +19,7 @@ import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
 import type { StitchToolClientSpec } from "./spec/client.js";
 import { slugify } from "./slugify.js";
+import { classifyError } from "./spec/error-mapping.js";
 import { DownloadAssetsInputSchema } from "./spec/download.js";
 import type {
   DownloadAssetsSpec,
@@ -309,10 +310,13 @@ export class DownloadAssetsHandler implements DownloadAssetsSpec {
         fsCode === "EEXIST"
       ) {
         code = "WRITE_FAILED";
-      } else if (lowerMsg.includes("not found") || lowerMsg.includes("404")) {
-        code = "PROJECT_NOT_FOUND";
       } else if (lowerMsg.includes("fetch") || lowerMsg.includes("network")) {
+        // Local transport check stays ahead of the general mapper: a failed
+        // asset/HTML fetch is FETCH_FAILED even when its message embeds a
+        // status ("Asset fetch failed: 404 for ...").
         code = "FETCH_FAILED";
+      } else if (classifyError({ text: msg }) === "NOT_FOUND") {
+        code = "PROJECT_NOT_FOUND";
       }
 
       return {
