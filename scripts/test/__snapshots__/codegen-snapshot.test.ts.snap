@@ -70,7 +70,7 @@ export class Gizmo {
     public readonly gizmoId!: string;
     public data: any;
 
-    constructor(private client: StitchToolClient, data: any) {
+    protected constructor(private client: StitchToolClient, data: any) {
         if (typeof data === "string") {
           throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
         }
@@ -93,7 +93,9 @@ export class Gizmo {
         
         try {
           const raw = await this.client.callTool<GetGizmoAssetResponse>("get_gizmo_asset", { gizmoId: this.gizmoId, name: \`gizmos/\${this.gizmoId}\` });
-          return raw?.htmlCode?.downloadUrl || "";
+          const _value = raw?.htmlCode?.downloadUrl;
+          if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "get_gizmo_asset response has no htmlCode.downloadUrl for this resource", recoverable: false });
+          return _value;
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }
@@ -142,7 +144,7 @@ export class Widget {
     public readonly widgetId!: string;
     public data: any;
 
-    constructor(private client: StitchToolClient, data: any) {
+    protected constructor(private client: StitchToolClient, data: any) {
         if (typeof data === "string") {
           throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
         }

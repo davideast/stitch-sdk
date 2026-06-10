@@ -27,9 +27,22 @@ export function parseAllSegments(name: string): Record<string, string> {
   return result;
 }
 
+/**
+ * A domain-entity class reference. Typed via `prototype` (not a
+ * construct signature) so classes with PROTECTED constructors — all
+ * generated entities — can be passed. Construction happens only inside
+ * the EntityManager.
+ */
+export type EntityClassRef<T> = Function & {
+  prototype: T;
+  entityKey?: string;
+};
+
 export class EntityManager {
   private cache = new Map<string, any>();
   private client: any;
+  /** When false, every resolve returns a fresh instance (value-object mode). */
+  private enabled: boolean;
 
   /**
    * Canonical implementations by entityKey. Extension modules (e.g.
@@ -39,17 +52,15 @@ export class EntityManager {
    * generated base module ever importing its own extension (which
    * would be an ESM cycle with TDZ hazards).
    */
-  private static implementations = new Map<string, new (...args: any[]) => any>();
+  private static implementations = new Map<string, Function>();
 
-  static registerImplementation(
-    entityKey: string,
-    ctor: new (...args: any[]) => any,
-  ): void {
+  static registerImplementation(entityKey: string, ctor: Function): void {
     EntityManager.implementations.set(entityKey, ctor);
   }
 
-  constructor(client: any) {
+  constructor(client: any, opts?: { enabled?: boolean }) {
     this.client = client;
+    this.enabled = opts?.enabled ?? true;
   }
 
   /**
@@ -65,7 +76,7 @@ export class EntityManager {
    * would alias unrelated instances.
    */
   resolve<T>(
-    EntityClass: new (...args: any[]) => T,
+    EntityClass: EntityClassRef<T>,
     referenceKeys: string[],
     data: any,
   ): T {
@@ -103,6 +114,10 @@ export class EntityManager {
       referenceKeys.length > 0 &&
       keyValues.every((v) => typeof v === "string" && v.length > 0);
 
+    if (!this.enabled) {
+      return this.instantiate(EntityClass, referenceKeys, parsedValues, data);
+    }
+
     if (!identifiable) {
       if (process.env.STITCH_DEBUG) {
         console.warn(
@@ -135,7 +150,7 @@ export class EntityManager {
   }
 
   private instantiate<T>(
-    EntityClass: new (...args: any[]) => T,
+    EntityClass: EntityClassRef<T>,
     referenceKeys: string[],
     parsedValues: Record<string, string>,
     data: any,
@@ -144,12 +159,12 @@ export class EntityManager {
     const entityKey: string =
       (EntityClass as any).entityKey ?? EntityClass.name;
     const Impl = EntityManager.implementations.get(entityKey) ?? EntityClass;
-    // Direct instantiation is restricted for users, but allowed here.
-    // Constructors reject raw strings; identity is carried via parsedValues.
-    const instance = new Impl(
+    // Generated constructors are PROTECTED — the identity map is the one
+    // sanctioned construction path. The cast is deliberate.
+    const instance = new (Impl as new (...args: any[]) => any)(
       this.client,
       typeof data === "object" ? data : undefined,
-    ) as any;
+    );
     for (const key of referenceKeys) {
       if (parsedValues[key]) {
         instance[key] = parsedValues[key];

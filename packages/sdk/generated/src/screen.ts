@@ -19,7 +19,7 @@ export class Screen {
     public readonly screenId!: string;
     public data: any;
 
-    constructor(protected client: StitchToolClient, data: any) {
+    protected constructor(protected client: StitchToolClient, data: any) {
         if (typeof data === "string") {
           throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
         }

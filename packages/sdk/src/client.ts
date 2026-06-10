@@ -182,7 +182,9 @@ export class StitchToolClient implements StitchToolClientSpec {
   ) {
     this.config = StitchConfigSchema.parse(resolveConfigWithEnv(inputConfig));
     this.localVirtualTools = inputConfig?.localVirtualTools || [];
-    this.entities = new EntityManager(this);
+    this.entities = new EntityManager(this, {
+      enabled: this.config.entityCache,
+    });
 
     this.client = this.createMcpClient();
   }

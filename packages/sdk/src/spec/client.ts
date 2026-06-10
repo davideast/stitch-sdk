@@ -36,6 +36,14 @@ export const StitchConfigSchema = z
     timeout: z.number().default(300_000),
 
     /**
+     * Identity-map toggle. Default true: resolving the same entity
+     * yields the same instance (with data merged on refresh). Set false
+     * for value-object behavior — every resolve returns a fresh,
+     * never-cached instance.
+     */
+    entityCache: z.boolean().default(true),
+
+    /**
      * Retry policy for RATE_LIMITED failures on idempotent reads
      * (`get_*` / `list_*` tools only — generative/mutating tools are
      * never auto-retried). Set to `false` to disable retries entirely.

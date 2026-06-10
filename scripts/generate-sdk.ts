@@ -1072,6 +1072,10 @@ async function main() {
       cls.addProperty({ name: "data", type: "any", scope: Scope.Public });
 
       cls.addConstructor({
+        // SEALED (V1_PLAN §3.3): entities are constructed ONLY by the
+        // EntityManager (which hydrates reference keys and dedupes).
+        // Public path: factories + method returns.
+        scope: Scope.Protected,
         parameters: [
           { name: "client", type: "StitchToolClient", scope: clientScope },
           { name: "data", type: "any" },

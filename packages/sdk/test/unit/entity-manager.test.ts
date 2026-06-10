@@ -232,3 +232,21 @@ describe("parseAllSegments", () => {
     expect(parseAllSegments("abc123")).toEqual({});
   });
 });
+
+describe("EntityManager value-object mode (entityCache: false)", () => {
+  it("never caches: same identity yields distinct instances", () => {
+    const manager = new EntityManager({}, { enabled: false });
+    const a = manager.resolve(DummyEntity, ["projectId", "id"], {
+      id: "1",
+      projectId: "p1",
+    });
+    const b = manager.resolve(DummyEntity, ["projectId", "id"], {
+      id: "1",
+      projectId: "p1",
+    });
+    expect(a).not.toBe(b);
+    // Identity is still hydrated
+    expect(a.id).toBe("1");
+    expect(b.projectId).toBe("p1");
+  });
+});
