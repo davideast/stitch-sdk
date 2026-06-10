@@ -1,0 +1,8 @@
+{
+  "designSystems": [
+    {
+      "name": "assets/ds-1",
+      "designSystem": { "displayName": "Brand", "theme": { "designMd": "# Brand" } }
+    }
+  ]
+}
