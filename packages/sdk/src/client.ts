@@ -15,6 +15,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import {
   StitchConfigSchema,
   StitchConfig,
@@ -328,6 +329,28 @@ export class StitchToolClient implements StitchToolClientSpec {
   }
 
   /**
+   * Call a tool and return the RAW MCP CallToolResult envelope
+   * (content / structuredContent / isError) WITHOUT parsing and WITHOUT
+   * retry.
+   *
+   * This is the proxy's forwarding path: the proxy relays envelopes
+   * verbatim to its downstream MCP client, which owns error semantics —
+   * parsing or retrying here would change downstream-visible behavior.
+   * SDK users want callTool() instead.
+   */
+  async callToolRaw(name: string, args: Record<string, any>): Promise<any> {
+    this.assertNotClosed();
+    if (!this.isConnected) await this.connect();
+
+    // Log arg KEYS only — prompt/content values may be sensitive.
+    debugLog("tool", `callToolRaw ${name}`, { argKeys: Object.keys(args) });
+
+    return this.client.callTool({ name, arguments: args }, undefined, {
+      timeout: this.config.timeout,
+    });
+  }
+
+  /**
    * Make a direct REST POST to the Stitch API.
    *
    * Used for endpoints not available as MCP tools (e.g. BatchCreateScreens).
@@ -368,24 +391,35 @@ export class StitchToolClient implements StitchToolClientSpec {
     return response.json() as Promise<T>;
   }
 
-  async listTools() {
+  /**
+   * List remote tools and return the RAW result — schemas exactly as the
+   * server served them, with NO repair and NO local virtual tools appended.
+   *
+   * Used where the raw schemas are the source of truth: the capture
+   * pipeline (tools-manifest must not be coupled to repair heuristics)
+   * and the proxy (repair happens at serving time in its listTools
+   * handler). SDK users want listTools() instead.
+   *
+   * CRITICAL: We use a raw request() instead of this.client.listTools()
+   * because Client.listTools() eagerly compiles outputSchema with AJV
+   * via cacheToolMetadata(). If the Stitch backend returns schemas with
+   * $ref to missing $defs (e.g. #/$defs/ScreenInstance), AJV throws a
+   * MissingRefError BEFORE any schema repair code can run.
+   */
+  async listToolsRaw(): Promise<{ tools: Tool[] }> {
     this.assertNotClosed();
     if (!this.isConnected) await this.connect();
 
-    // CRITICAL: We use a raw request() instead of this.client.listTools()
-    // because Client.listTools() eagerly compiles outputSchema with AJV
-    // via cacheToolMetadata(). If the Stitch backend returns schemas with
-    // $ref to missing $defs (e.g. #/$defs/ScreenInstance), AJV throws a
-    // MissingRefError BEFORE our schema repair code can run.
-    //
-    // By using request() directly, we get the raw tool list, apply schema
-    // repair to inject missing $defs, and avoid the AJV crash entirely.
     const remoteTools = await (this.client as any).request(
       { method: "tools/list", params: {} },
       ListToolsResultSchema,
     );
 
-    const tools = remoteTools.tools || [];
+    return { tools: remoteTools.tools || [] };
+  }
+
+  async listTools() {
+    const { tools } = await this.listToolsRaw();
 
     // Resilient Schema Repair: Inject missing $defs BEFORE any AJV
     // compilation can occur. Repairs both inputSchema and outputSchema.

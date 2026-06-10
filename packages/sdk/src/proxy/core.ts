@@ -20,6 +20,7 @@ import {
   StitchProxyConfig,
   StitchProxySpec,
 } from "../spec/proxy.js";
+import { StitchToolClient } from "../client.js";
 import { ProxyContext, initializeStitchConnection } from "./client.js";
 import { registerListToolsHandler } from "./handlers/listTools.js";
 import { registerCallToolHandler } from "./handlers/callTool.js";
@@ -72,9 +73,17 @@ export class StitchProxy implements StitchProxySpec {
       },
     );
 
-    // Shared context for handlers
+    // Shared context for handlers. The proxy runs on the real
+    // StitchToolClient (one MCP stack, D9) — map proxy config onto the
+    // client's config shape.
     this.ctx = {
       config: this.config,
+      client: new StitchToolClient({
+        apiKey: this.config.apiKey,
+        accessToken: this.config.accessToken,
+        projectId: this.config.quotaProjectId,
+        baseUrl: this.config.url,
+      }),
       remoteTools: [] as Tool[],
     };
 
@@ -95,5 +104,6 @@ export class StitchProxy implements StitchProxySpec {
 
   async close(): Promise<void> {
     await this.server.close();
+    await this.ctx.client.close();
   }
 }

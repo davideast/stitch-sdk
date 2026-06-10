@@ -13,99 +13,34 @@
 // limitations under the License.
 
 import { StitchProxyConfig } from "../spec/proxy.js";
-import { buildAuthHeaders } from "../auth.js";
+import type { StitchToolClient } from "../client.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * Shared state for proxy handlers.
+ *
+ * `client` is the ONE MCP stack in the repo (D9): a real StitchToolClient
+ * over the MCP SDK's StreamableHTTPClientTransport. The caller constructs
+ * and injects it (see core.ts) — this module never builds transports or
+ * speaks JSON-RPC itself.
  */
 export interface ProxyContext {
   config: StitchProxyConfig;
+  client: StitchToolClient;
   remoteTools: Tool[];
 }
 
 /**
- * Forward a JSON-RPC request to Stitch.
- */
-export async function forwardToStitch(
-  config: StitchProxyConfig,
-  method: string,
-  params?: unknown,
-): Promise<unknown> {
-  const request = {
-    jsonrpc: "2.0",
-    method,
-    params: params ?? {},
-    id: Date.now(),
-  };
-
-  let response: Response;
-  try {
-    response = await fetch(config.url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...buildAuthHeaders(config),
-      },
-      body: JSON.stringify(request),
-    });
-  } catch (err: any) {
-    throw new Error(`Network failure connecting to Stitch API: ${err.message}`);
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Stitch API error (${response.status}): ${errorText}`);
-  }
-
-  const result = (await response.json()) as {
-    error?: { message: string };
-    result?: unknown;
-  };
-
-  if (result.error) {
-    throw new Error(`Stitch RPC error: ${result.error.message}`);
-  }
-
-  return result.result;
-}
-
-/**
- * Initialize connection to Stitch and fetch tools.
+ * Initialize the upstream Stitch connection and fetch tools.
+ *
+ * The MCP SDK handles the initialize handshake (protocol version,
+ * session id, awaited notifications/initialized) — the hand-rolled
+ * JSON-RPC machinery that used to live here is gone.
  */
 export async function initializeStitchConnection(
   ctx: ProxyContext,
 ): Promise<void> {
-  // Send initialize request
-  await forwardToStitch(ctx.config, "initialize", {
-    protocolVersion: ctx.config.protocolVersion || "2024-11-05",
-    capabilities: {},
-    clientInfo: {
-      name: ctx.config.name,
-      version: ctx.config.version,
-    },
-  });
-
-  // Send initialized notification (fire and forget)
-  fetch(ctx.config.url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...buildAuthHeaders(ctx.config),
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "notifications/initialized",
-    }),
-  }).catch((err) => {
-    console.error(
-      "[stitch-proxy] Failed to send initialized notification:",
-      err,
-    );
-  });
-
+  await ctx.client.connect();
   await refreshTools(ctx);
   console.error(
     `[stitch-proxy] Connected to Stitch, discovered ${ctx.remoteTools.length} tools`,
@@ -122,8 +57,5 @@ export async function initializeStitchConnection(
  * repair heuristics.
  */
 export async function refreshTools(ctx: ProxyContext): Promise<void> {
-  const toolsResult = (await forwardToStitch(ctx.config, "tools/list", {})) as {
-    tools: Tool[];
-  };
-  ctx.remoteTools = toolsResult.tools || [];
+  ctx.remoteTools = (await ctx.client.listToolsRaw()).tools;
 }

@@ -50,6 +50,22 @@ export function registerListToolsHandler(
     // unresolved $ref targets the backend sometimes omits.
     const served = structuredClone(ctx.remoteTools);
     repairToolSchemas(served);
-    return { tools: [...served, ...PROXY_VIRTUAL_TOOLS] };
+
+    // Collision detection: if the server ever ships a tool with a virtual
+    // tool's name, the virtual tool wins the callTool route (isVirtualTool
+    // is checked first) — so don't serve a duplicate listing, and say so
+    // loudly instead of silently shadowing.
+    const virtualNames = new Set(PROXY_VIRTUAL_TOOLS.map((t) => t.name));
+    const deduped = served.filter((t) => {
+      if (virtualNames.has(t.name)) {
+        console.warn(
+          `[stitch-proxy] Remote tool "${t.name}" collides with a local ` +
+            `virtual tool and is shadowed. Rename one of them.`,
+        );
+        return false;
+      }
+      return true;
+    });
+    return { tools: [...deduped, ...PROXY_VIRTUAL_TOOLS] };
   });
 }

@@ -16,11 +16,16 @@
  * De-mocked tests for the proxy's virtual-tool seam.
  *
  * Unlike proxy.test.ts (which tests handler ROUTING with a mocked
- * Project), these tests exercise the real Project + EntityManager +
- * envelope-parsing path — the exact seam where two shipped bugs hid:
+ * Project), these tests exercise the real Project + EntityManager
+ * path — the exact seam where two shipped bugs hid:
  *   1. new Project(client, id) left projectId undefined
  *   2. dummyClient returned raw MCP envelopes, so error responses
  *      silently read as "0 screens, success".
+ *
+ * Since branch 12, virtual tools execute against ctx.client — the real
+ * StitchToolClient (one MCP stack). Its callTool contract is "parsed
+ * payload or thrown StitchError"; envelope parsing itself is covered by
+ * StitchToolClient's own tests. The fakes here honor that contract.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -30,13 +35,6 @@ import { join } from "node:path";
 import { StitchError } from "../../src/spec/errors.js";
 import { EntityManager } from "../../src/entity-manager.js";
 
-const { mockForward } = vi.hoisted(() => ({ mockForward: vi.fn() }));
-
-vi.mock("../../src/proxy/client.js", async () => {
-  const actual = await vi.importActual("../../src/proxy/client.js");
-  return { ...actual, forwardToStitch: mockForward };
-});
-
 import {
   createProject,
   handleVirtualTool,
@@ -44,23 +42,33 @@ import {
   virtualTools,
 } from "../../src/proxy/virtual-tools.js";
 
+/** Fake honoring the StitchToolClient contract: parsed payloads + entities. */
+function makeFakeClient(): any {
+  const client: any = { callTool: vi.fn() };
+  client.entities = new EntityManager(client);
+  return client;
+}
+
 describe("virtual-tools (real construction path)", () => {
   it("REGRESSION: createProject hydrates projectId via the identity map", () => {
-    const client: any = { callTool: vi.fn() };
-    client.entities = new EntityManager(client);
+    const client = makeFakeClient();
 
     const project = createProject("p-123", client);
     expect(project.projectId).toBe("p-123");
     expect(project.id).toBe("p-123");
   });
 
-  it("REGRESSION: an isError envelope from the server throws instead of silently succeeding", async () => {
-    mockForward.mockResolvedValue({
-      isError: true,
-      content: [{ type: "text", text: "Project not found" }],
-    });
+  it("REGRESSION: a StitchError from client.callTool propagates instead of silently succeeding", async () => {
+    const client = makeFakeClient();
+    client.callTool.mockRejectedValue(
+      new StitchError({
+        code: "NOT_FOUND",
+        message: "Tool Call Failed [list_screens]: Project not found",
+        recoverable: false,
+      }),
+    );
 
-    const ctx = { config: { apiKey: "k", url: "https://example.com" } };
+    const ctx = { client };
     await expect(
       handleVirtualTool(
         "download_assets",
@@ -70,15 +78,14 @@ describe("virtual-tools (real construction path)", () => {
     ).rejects.toThrow(StitchError);
   });
 
-  it("parses structuredContent envelopes into payloads (0 screens → clean success)", async () => {
-    mockForward.mockResolvedValue({
-      content: [],
-      structuredContent: { screens: [] },
-    });
+  it("parses structured payloads (0 screens → clean success)", async () => {
+    const client = makeFakeClient();
+    // Parsed-payload contract: callTool resolves the payload directly.
+    client.callTool.mockResolvedValue({ screens: [] });
 
     const outputDir = mkdtempSync(join(tmpdir(), "stitch-vt-test-"));
     try {
-      const ctx = { config: { apiKey: "k", url: "https://example.com" } };
+      const ctx = { client };
       const result = await handleVirtualTool(
         "download_assets",
         { projectId: "p-1", outputDir },
@@ -95,7 +102,7 @@ describe("virtual-tools (real construction path)", () => {
     expect(isVirtualTool("download_assets")).toBe(true);
     expect(isVirtualTool("not_a_tool")).toBe(false);
     await expect(
-      handleVirtualTool("not_a_tool", {}, { config: {} }),
+      handleVirtualTool("not_a_tool", {}, { client: makeFakeClient() }),
     ).rejects.toThrow(/Unknown virtual tool/);
   });
 });

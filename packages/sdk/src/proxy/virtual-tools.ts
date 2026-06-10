@@ -14,9 +14,7 @@
 
 import { Project } from "../project-ext.js";
 import { VirtualToolDefinition } from "../spec/client.js";
-import { forwardToStitch } from "./client.js";
-import { parseToolResult } from "../client.js";
-import { EntityManager } from "../entity-manager.js";
+import type { ProxyContext } from "./client.js";
 
 /**
  * Create a Project handle bound to a client, via the identity map.
@@ -55,28 +53,16 @@ export const virtualTools: VirtualToolDefinition[] = [downloadAssetsTool];
 export async function handleVirtualTool(
   name: string,
   args: any,
-  ctx: any,
+  ctx: Pick<ProxyContext, "client">,
 ): Promise<any> {
-  // Minimal client adapter over the proxy transport. callTool must return
-  // the PARSED tool payload (same contract as StitchToolClient.callTool):
-  // forwardToStitch yields the raw MCP envelope, and isError envelopes
-  // must throw instead of silently reading as empty results.
-  const proxyClient: any = {
-    callTool: async (toolName: string, toolArgs: any) => {
-      const envelope = await forwardToStitch(ctx.config, "tools/call", {
-        name: toolName,
-        arguments: toolArgs,
-      });
-      return parseToolResult(envelope, toolName);
-    },
-  };
-  proxyClient.entities = new EntityManager(proxyClient);
-
   const tool = virtualTools.find((t) => t.name === name);
   if (!tool) {
     throw new Error(`Unknown virtual tool: ${name}`);
   }
-  return tool.execute(proxyClient, args);
+  // The real StitchToolClient already provides the parsed-payload callTool
+  // contract (isError envelopes throw StitchError) plus the EntityManager
+  // identity map — the old dummyClient/proxyClient shim is gone.
+  return tool.execute(ctx.client, args);
 }
 
 export function isVirtualTool(name: string): boolean {
