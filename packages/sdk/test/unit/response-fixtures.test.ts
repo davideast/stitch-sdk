@@ -96,11 +96,16 @@ const BINDING_CASES: Record<string, () => Promise<void>> = {
   "Project.generate": async () => {
     arm("generate_screen_from_text");
     const result = await project().generate("a page");
-    // PINNED CURRENT BEHAVIOR — the fixture contains THREE screens; the
-    // find+index projection returns only the first. Branch 13
-    // (Generation results) flips this to return all three.
-    expect(result).toBeInstanceOf(Screen);
-    expect(result.id).toBe("gen-1");
+    // THE truncation-bug fix: ALL THREE screens across BOTH output
+    // components are returned, not just the first.
+    expect(result.screens.map((s) => s.id)).toEqual([
+      "gen-1",
+      "gen-2",
+      "gen-3",
+    ]);
+    expect(result.first).toBeInstanceOf(Screen);
+    expect(result.first.id).toBe("gen-1");
+    expect((result.raw as any).sessionId).toBe("sess-1");
   },
   "Project.screens": async () => {
     arm("list_screens");
@@ -137,14 +142,21 @@ const BINDING_CASES: Record<string, () => Promise<void>> = {
   "Screen.edit": async () => {
     arm("edit_screens");
     const result = await screen().edit("darker");
-    // PINNED CURRENT BEHAVIOR — first of three screens (see Project.generate)
-    expect(result.id).toBe("edit-1");
+    expect(result.screens.map((s) => s.id)).toEqual([
+      "edit-1",
+      "edit-2",
+      "edit-3",
+    ]);
+    expect(result.first.id).toBe("edit-1");
   },
   "Screen.variants": async () => {
     arm("generate_variants");
     const result = await screen().variants("colors", {} as any);
-    // each/each correctly collects ALL screens across ALL components
-    expect(result.map((s) => s.id)).toEqual(["var-1", "var-2", "var-3"]);
+    expect(result.screens.map((s) => s.id)).toEqual([
+      "var-1",
+      "var-2",
+      "var-3",
+    ]);
   },
   "Screen.getHtml": async () => {
     arm("get_screen");
@@ -172,7 +184,7 @@ const BINDING_CASES: Record<string, () => Promise<void>> = {
   "DesignSystem.apply": async () => {
     arm("apply_design_system");
     const result = await designSystem().apply([] as any);
-    expect(result.map((s) => s.id)).toEqual([
+    expect(result.screens.map((s) => s.id)).toEqual([
       "applied-1",
       "applied-2",
       "applied-3",

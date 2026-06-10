@@ -115,17 +115,18 @@
       },
       "returns": {
         "class": "Screen",
+        "kind": "generation",
         "projection": [
           {
             "prop": "outputComponents",
-            "find": "design.screens"
+            "each": true
           },
           {
             "prop": "design"
           },
           {
             "prop": "screens",
-            "index": 0
+            "each": true
           }
         ]
       }
@@ -156,17 +157,18 @@
       },
       "returns": {
         "class": "Screen",
+        "kind": "generation",
         "projection": [
           {
             "prop": "outputComponents",
-            "find": "design.screens"
+            "each": true
           },
           {
             "prop": "design"
           },
           {
             "prop": "screens",
-            "index": 0
+            "each": true
           }
         ]
       }
@@ -200,6 +202,7 @@
       },
       "returns": {
         "class": "Screen",
+        "kind": "generation",
         "projection": [
           {
             "prop": "outputComponents",
@@ -212,8 +215,7 @@
             "prop": "screens",
             "each": true
           }
-        ],
-        "array": true
+        ]
       }
     },
     {
@@ -408,6 +410,7 @@
       },
       "returns": {
         "class": "Screen",
+        "kind": "generation",
         "projection": [
           {
             "prop": "outputComponents",
@@ -420,8 +423,7 @@
             "prop": "screens",
             "each": true
           }
-        ],
-        "array": true
+        ]
       }
     },
     {

@@ -3,10 +3,11 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:715639788724...)
+        domain-map.json     (sha256:916181fe773d...)
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";
+import { Generation } from "../../src/generation.js";
 import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
 import { EditScreensResponse, GenerateVariantsResponse, GetScreenResponse } from "./responses.generated.js";
 
@@ -35,12 +36,12 @@ export class Screen {
      * Edits existing screens within a project using a text prompt.
      * Tool: edit_screens
      */
-    async edit(prompt: string, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Screen> {
+    async edit(prompt: string, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Generation<Screen, EditScreensResponse>> {
         try {
           const raw = await this.client.callTool<EditScreensResponse>("edit_screens", { projectId: this.projectId, selectedScreenIds: [this.screenId], prompt, deviceType: options?.deviceType, modelId: options?.modelId });
-          const _projected = (raw?.outputComponents ?? []).find((c: any) => c?.design?.screens != null)?.design?.screens?.[0];
-          if (!_projected) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from edit_screens: expected object at projection path", recoverable: false });
-          return this.client.entities.resolve(Screen, ["projectId","screenId"], { ..._projected, projectId: this.projectId })
+          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
+          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from edit_screens: no screens in response", recoverable: false });
+          return new Generation(_screens, raw);
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }
@@ -50,10 +51,12 @@ export class Screen {
      * Generates variants of existing screens within a project using a text prompt.
      * Tool: generate_variants
      */
-    async variants(prompt: string, variantOptions: VariantOptions, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Screen[]> {
+    async variants(prompt: string, variantOptions: VariantOptions, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Generation<Screen, GenerateVariantsResponse>> {
         try {
           const raw = await this.client.callTool<GenerateVariantsResponse>("generate_variants", { projectId: this.projectId, selectedScreenIds: [this.screenId], prompt, variantOptions, deviceType: options?.deviceType, modelId: options?.modelId });
-          return ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
+          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
+          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from generate_variants: no screens in response", recoverable: false });
+          return new Generation(_screens, raw);
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }

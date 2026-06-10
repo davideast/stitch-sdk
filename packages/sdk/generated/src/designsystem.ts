@@ -3,10 +3,11 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:715639788724...)
+        domain-map.json     (sha256:916181fe773d...)
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";
+import { Generation } from "../../src/generation.js";
 import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
 import { UpdateDesignSystemResponse, ApplyDesignSystemResponse } from "./responses.generated.js";
 import { Screen } from "./screen.js";
@@ -49,10 +50,12 @@ export class DesignSystem {
      * Applies a design system to a list of screens. Use this tool when the user wants to update one or more screens to match the style of a design system.
      * Tool: apply_design_system
      */
-    async apply(selectedScreenInstances: SelectedScreenInstance[]): Promise<Screen[]> {
+    async apply(selectedScreenInstances: SelectedScreenInstance[]): Promise<Generation<Screen, ApplyDesignSystemResponse>> {
         try {
           const raw = await this.client.callTool<ApplyDesignSystemResponse>("apply_design_system", { assetId: this.assetId, projectId: this.projectId, selectedScreenInstances });
-          return ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
+          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
+          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from apply_design_system: no screens in response", recoverable: false });
+          return new Generation(_screens, raw);
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }

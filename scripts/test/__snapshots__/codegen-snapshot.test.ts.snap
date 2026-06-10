@@ -108,7 +108,7 @@ export class Gizmo {
           const raw = await this.client.callTool<SpawnWidgetsResponse>("spawn_widgets", { gizmoId: this.gizmoId, prompt, mode: options?.mode ?? "FAST" });
           const _projected = (raw?.outputComponents ?? []).find((c: any) => c?.design?.widgets != null)?.design?.widgets?.[0];
           if (!_projected) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from spawn_widgets: expected object at projection path", recoverable: false });
-          return this.client.entities.resolve(Widget, ["gizmoId","widgetId"], { ..._projected, gizmoId: this.gizmoId })
+          return this.client.entities.resolve(Widget, ["gizmoId","widgetId"], { ..._projected, gizmoId: this.gizmoId });
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }
@@ -130,6 +130,7 @@ DO NOT EDIT — changes will be overwritten.
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";
+import { Generation } from "../../src/generation.js";
 import { GizmoInput, File, Component } from "./types.generated.js";
 import { SpawnWidgetsResponse } from "./responses.generated.js";
 
@@ -158,10 +159,12 @@ export class Widget {
      * Spawns widgets from a prompt.
      * Tool: spawn_widgets
      */
-    async spawnAll(prompt: string, options?: { spawnMode?: "FAST" | "SLOW" }): Promise<Widget[]> {
+    async spawnAll(prompt: string, options?: { spawnMode?: "FAST" | "SLOW" }): Promise<Generation<Widget, SpawnWidgetsResponse>> {
         try {
           const raw = await this.client.callTool<SpawnWidgetsResponse>("spawn_widgets", { gizmoId: this.gizmoId, selectedWidgetIds: [this.widgetId], prompt, mode: options?.spawnMode });
-          return ((raw.outputComponents || []).flatMap((a: any) => a?.design?.widgets || []) || []).map((item) => this.client.entities.resolve(Widget, ["gizmoId","widgetId"], { ...item, gizmoId: this.gizmoId }));
+          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.widgets || []) || []).map((item) => this.client.entities.resolve(Widget, ["gizmoId","widgetId"], { ...item, gizmoId: this.gizmoId }));
+          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from spawn_widgets: no screens in response", recoverable: false });
+          return new Generation(_screens, raw);
         } catch (error) {
           throw StitchError.fromUnknown(error);
         }

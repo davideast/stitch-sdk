@@ -123,8 +123,31 @@ export const ReturnSpec = z
     projection: z.array(ProjectionStep),
     /** Whether the result is an array */
     array: z.boolean().optional(),
+    /**
+     * "generation": wrap the projected array in a Generation<Item, Raw>
+     * container ({ screens, first, raw }). REQUIRED for generative tools —
+     * Stitch returns many screens per generation, and a single-item
+     * projection silently truncates. Requires `class`; the projection
+     * must collect ALL items (at least one `each` step); `array` is
+     * implied and must not be set.
+     */
+    kind: z.literal("generation").optional(),
   })
-  .strict();
+  .strict()
+  .refine((d) => !(d.kind === "generation" && !d.class), {
+    message: '"kind": "generation" requires "class"',
+  })
+  .refine(
+    (d) => !(d.kind === "generation" && !d.projection.some((s) => s.each)),
+    {
+      message:
+        '"kind": "generation" requires an "each" projection — collecting ' +
+        "a single item from a generative response truncates data",
+    },
+  )
+  .refine((d) => !(d.kind === "generation" && d.array !== undefined), {
+    message: '"kind": "generation" implies array semantics; omit "array"',
+  });
 export type ReturnSpec = z.infer<typeof ReturnSpec>;
 
 // ── Cache Spec ────────────────────────────────────────────────

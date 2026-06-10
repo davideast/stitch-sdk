@@ -15,9 +15,9 @@ if (projects.length === 0) {
 const project = projects[0];
 
 console.log(`🎨 Generating a screen in project ${project.id}...`);
-const screen = await project.generate(
-  "A dashboard with many Material Design icons",
-);
+const screen = (
+  await project.generate("A dashboard with many Material Design icons")
+).first;
 console.log(`✅ Screen generated: ${screen.id}`);
 
 const htmlOrUrl = await screen.getHtml();

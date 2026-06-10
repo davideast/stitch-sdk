@@ -25,7 +25,8 @@ export STITCH_API_KEY="your-api-key"
 import { stitch } from "@google/stitch-sdk";
 
 const project = await stitch.createProject({ title: "My App" });
-const screen = await project.generate("A settings page with dark theme");
+const generation = await project.generate("A settings page with dark theme");
+const screen = generation.first; // all screens: generation.screens
 const html = await screen.getHtml(); // download URL for the HTML
 const imageUrl = await screen.getImage(); // download URL for the screenshot
 ```
@@ -63,9 +64,11 @@ const dsRef = project.designSystem("existing-asset-id");
 const updated = await ds.update({ displayName: "Updated Theme" });
 
 // Apply to screens (requires SelectedScreenInstance objects from project.data.screenInstances)
-const screens = await ds.apply([
+// Returns a Generation — all updated screens are in .screens
+const applied = await ds.apply([
   { id: "instance-id", sourceScreen: "projects/123/screens/456" },
 ]);
+applied.screens;
 ```
 
 ## Uploading Images
@@ -102,25 +105,32 @@ The method reads the file from disk and posts it directly to the Stitch REST API
 ## Generating and Iterating on Screens
 
 ```typescript
-// Generate a new screen from a prompt
-const screen = await project.generate(
+// Generate screens from a prompt. Stitch can return MANY screens per
+// generation — a Generation carries all of them plus the raw response.
+const generation = await project.generate(
   "Login page with email and password fields",
 );
+generation.screens; // every generated Screen
+generation.first;   // convenience: the first screen
+generation.raw;     // full typed tool response
 
 // Optional settings go in a trailing options object
-const mobileScreen = await project.generate("A settings page", {
+const mobile = await project.generate("A settings page", {
   deviceType: "MOBILE",
 });
 
-// Edit an existing screen
-const edited = await screen.edit("Make the background dark and add a subtitle");
+// Edit an existing screen (also returns a Generation)
+const edited = await generation.first.edit(
+  "Make the background dark and add a subtitle",
+);
 
 // Generate variants of a screen
-const variants = await screen.variants("Try different color schemes", {
+const variants = await generation.first.variants("Try different color schemes", {
   variantCount: 2,
   creativeRange: "EXPLORE",
   aspects: ["COLOR_SCHEME", "LAYOUT"],
 });
+variants.screens; // all variant Screens
 ```
 
 ## Retrieving Screen Assets
@@ -190,7 +200,7 @@ Error codes: `AUTH_FAILED`, `NOT_FOUND`, `PERMISSION_DENIED`, `RATE_LIMITED`, `N
 
 | Method                             | Returns                   | Description                                      |
 | ---------------------------------- | ------------------------- | ------------------------------------------------ |
-| `generate(prompt, options?)`       | `Promise<Screen>`         | Generate a screen (`options.deviceType`, `options.modelId`) |
+| `generate(prompt, options?)`       | `Promise<Generation<Screen>>` | Generate screens — `.screens`, `.first`, `.raw` (`options.deviceType`, `options.modelId`) |
 | `screens()`                        | `Promise<Screen[]>`       | List all screens in the project                  |
 | `getScreen(screenId)`              | `Promise<Screen>`         | Retrieve a specific screen by ID                 |
 | `uploadImage(filePath, opts?)`     | `Promise<Screen[]>`       | Upload an image file and create a screen from it |

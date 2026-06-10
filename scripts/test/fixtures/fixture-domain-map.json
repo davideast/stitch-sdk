@@ -106,12 +106,12 @@
       },
       "returns": {
         "class": "Widget",
+        "kind": "generation",
         "projection": [
           { "prop": "outputComponents", "each": true },
           { "prop": "design" },
           { "prop": "widgets", "each": true }
-        ],
-        "array": true
+        ]
       }
     }
   ]

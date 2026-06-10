@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:715639788724...)
+        domain-map.json     (sha256:916181fe773d...)
  */
 
 /** A component style token in a design system. */

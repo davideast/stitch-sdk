@@ -87,9 +87,14 @@ try {
 
   // ── 4. Generate screen ──────────────────────────────────────
   console.log("\n🎨 Generating screen...");
-  const screen = await project.generate(`
+  const generation = await project.generate(`
     A simple hello world page with centered text
   `);
+  assert(
+    generation.screens.length >= 1,
+    `Generate returned ${generation.screens.length} screen(s) (all collected, none truncated)`,
+  );
+  const screen = generation.first;
   assert(screen !== null && screen !== undefined, "Generate returned a screen");
   assert(
     typeof screen.id === "string" && screen.id.length > 0,
@@ -114,9 +119,10 @@ try {
 
   // ── 7. Edit screen ─────────────────────────────────────────
   console.log("\n✏️  Editing screen...");
-  const edited = await screen.edit(
+  const editGen = await screen.edit(
     "Make the background dark and add a subtitle",
   );
+  const edited = editGen.first;
   assert(edited !== null && edited !== undefined, "Edit returned a screen");
   assert(
     typeof edited.id === "string" && edited.id.length > 0,
@@ -131,9 +137,10 @@ try {
 
   // ── 8. Generate variants ────────────────────────────────────
   console.log("\n🎭 Generating variants...");
-  const variants = await screen.variants("Try different color schemes", {
-    variantCount: 2,
-  });
+  const { screens: variants } = await screen.variants(
+    "Try different color schemes",
+    { variantCount: 2 },
+  );
   assert(Array.isArray(variants), `Got ${variants.length} variant(s)`);
   assert(variants.length > 0, "At least 1 variant returned");
 

@@ -50,8 +50,8 @@ describe("Project.screen() factory", () => {
     const screen = project.screen(SCREEN_ID);
     const edited = await screen.edit("make it blue");
 
-    expect(edited).toBeInstanceOf(Screen);
-    expect(edited.id).toBe("new-screen-id");
+    expect(edited.first).toBeInstanceOf(Screen);
+    expect(edited.first.id).toBe("new-screen-id");
   });
 
   it("should produce a screen that can call getHtml() via API", async () => {

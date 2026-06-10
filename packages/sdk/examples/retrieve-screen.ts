@@ -16,7 +16,7 @@ if (projects.length === 0) {
 const project = projects[0];
 
 console.log(`🎨 Generating a screen in project ${project.id}...`);
-const generatedScreen = await project.generate("A simple primary button");
+const generatedScreen = (await project.generate("A simple primary button")).first;
 console.log(`✅ Screen generated. ID: ${generatedScreen.id}`);
 console.log(`   Initial data name: ${generatedScreen.data?.name}`);
 

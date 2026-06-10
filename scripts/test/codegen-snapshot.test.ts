@@ -75,6 +75,15 @@ beforeAll(() => {
   mkdirSync(join(sandbox, "src", "spec"), { recursive: true });
   writeFileSync(join(sandbox, "src", "client.ts"), CLIENT_STUB);
   writeFileSync(join(sandbox, "src", "spec", "errors.ts"), ERRORS_STUB);
+  // Generation is real handwritten infra, not schema-dependent — use the
+  // actual implementation so behavioral tests exercise the shipped class.
+  writeFileSync(
+    join(sandbox, "src", "generation.ts"),
+    readFileSync(
+      resolve(ROOT_DIR, "packages/sdk/src/generation.ts"),
+      "utf-8",
+    ),
+  );
 
   const result = Bun.spawnSync(["bun", join(SCRIPTS_DIR, "generate-sdk.ts")], {
     cwd: ROOT_DIR,
@@ -256,9 +265,12 @@ describe("fixture output behavior", () => {
       gizmoId: "g-1",
       widgetId: "w-0",
     });
-    const all = await widget.spawnAll("make more");
+    const gen = await widget.spawnAll("make more");
+    const all = gen.screens;
 
     expect(all.map((w: any) => w.widgetId)).toEqual(["w1", "w2", "w3"]);
+    expect(gen.first.widgetId).toBe("w1");
+    expect(gen.raw.outputComponents).toHaveLength(2);
     // selfArray + rename routing
     expect(client.calls[0].args.selectedWidgetIds).toEqual(["w-0"]);
     expect(client.calls[0].args.mode).toBeUndefined();

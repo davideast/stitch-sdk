@@ -180,8 +180,8 @@ describe("SDK Unit Tests", () => {
         selectedScreenIds: ["screen-123"],
         prompt: "Make it dark",
       });
-      expect(edited).toBeInstanceOf(Screen);
-      expect(edited.id).toBe("edited-screen");
+      expect(edited.first).toBeInstanceOf(Screen);
+      expect(edited.first.id).toBe("edited-screen");
     });
 
     it("edit should find screen when a prefix block is present", async () => {
@@ -207,8 +207,8 @@ describe("SDK Unit Tests", () => {
       });
 
       const edited = await screen.edit("Make it dark");
-      expect(edited).toBeInstanceOf(Screen);
-      expect(edited.id).toBe("edited-2");
+      expect(edited.first).toBeInstanceOf(Screen);
+      expect(edited.first.id).toBe("edited-2");
     });
 
     it("edit should throw StitchError (not TypeError) when response has no screens", async () => {
@@ -273,10 +273,10 @@ describe("SDK Unit Tests", () => {
         prompt: "Try colors",
         variantOptions: { variantCount: 2 },
       });
-      expect(results).toHaveLength(2);
-      expect(results[0]).toBeInstanceOf(Screen);
-      expect(results[0].id).toBe("var-1");
-      expect(results[1].id).toBe("var-2");
+      expect(results.screens).toHaveLength(2);
+      expect(results.first).toBeInstanceOf(Screen);
+      expect(results.screens[0].id).toBe("var-1");
+      expect(results.screens[1].id).toBe("var-2");
     });
   });
 
@@ -355,9 +355,9 @@ describe("SDK Unit Tests", () => {
         },
       );
 
-      expect(result).toBeInstanceOf(Screen);
-      expect(result.id).toBe("new-screen-1");
-      expect(result.projectId).toBe(projectId);
+      expect(result.first).toBeInstanceOf(Screen);
+      expect(result.first.id).toBe("new-screen-1");
+      expect(result.first.projectId).toBe(projectId);
     });
 
     it("generate should find screen when designSystem block is absent (issue #315)", async () => {
@@ -390,8 +390,8 @@ describe("SDK Unit Tests", () => {
 
       const result = await project.generate("Second page");
 
-      expect(result).toBeInstanceOf(Screen);
-      expect(result.id).toBe("screen-2");
+      expect(result.first).toBeInstanceOf(Screen);
+      expect(result.first.id).toBe("screen-2");
     });
 
     it("generate should throw StitchError (not TypeError) when response has no screens", async () => {

@@ -644,6 +644,22 @@ function generateReturnExpression(
   const projection = binding.returns.projection;
   const projectionExpr = emitProjection(projection);
 
+  if (binding.returns.kind === "generation") {
+    const childClass = domainMap.classes[binding.returns.class!];
+    const parentField = childClass?.parentField;
+    const keys = childClass?.reference?.keys
+      ? JSON.stringify(childClass.reference.keys)
+      : "[]";
+    const itemExpr = parentField
+      ? `{ ...item, ${parentField}: this.${parentField} }`
+      : "item";
+    return (
+      `const _screens = (${projectionExpr} || []).map((item) => this.client.entities.resolve(${binding.returns.class}, ${keys}, ${itemExpr}));\n` +
+      `  if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from ${binding.tool}: no screens in response", recoverable: false });\n` +
+      `  return new Generation(_screens, raw)`
+    );
+  }
+
   if (binding.returns.class) {
     const childClass = domainMap.classes[binding.returns.class];
     const parentField = childClass?.parentField;
@@ -726,7 +742,7 @@ function buildMethodBody(
   const retExpr = generateReturnExpression(binding, className, domainMap);
   // If retExpr contains newlines, it has guard statements — don't wrap in return
   if (retExpr.includes("\n")) {
-    statements.push(`  ${retExpr}`);
+    statements.push(`  ${retExpr.endsWith(";") ? retExpr : retExpr + ";"}`);
   } else {
     statements.push(`  return ${retExpr};`);
   }
@@ -772,17 +788,28 @@ async function main() {
   // Validate projections against output schemas
   console.log("🔍 Validating projections against output schemas...");
   const lintWarnings: string[] = [];
+  // Generative tools MUST NOT truncate: for these, the unbounded-array
+  // lint escalates from warning to hard error unless the binding uses
+  // kind:"generation" (which requires `each` by IR schema) or explicitly
+  // acknowledges single-item semantics on the step.
+  const GENERATIVE_TOOL = /^(generate_|edit_|apply_)/;
   for (const binding of domainMap.bindings) {
     const tool = manifest.find((t) => t.name === binding.tool);
     if (!tool?.outputSchema) continue;
 
-    lintWarnings.push(
-      ...validateProjection(
-        binding.returns.projection,
-        tool.outputSchema,
-        `${binding.class}.${binding.method}`,
-      ),
+    const warnings = validateProjection(
+      binding.returns.projection,
+      tool.outputSchema,
+      `${binding.class}.${binding.method}`,
     );
+    if (warnings.length > 0 && GENERATIVE_TOOL.test(binding.tool)) {
+      throw new Error(
+        `❌ Generative tool binding truncates data:\n` +
+          warnings.join("\n") +
+          `\n   Fix: use "kind": "generation" with an "each" projection.`,
+      );
+    }
+    lintWarnings.push(...warnings);
   }
   console.log("  ✓ All projections valid against output schemas");
   for (const warning of lintWarnings) {
@@ -947,6 +974,12 @@ async function main() {
       moduleSpecifier: "../../src/spec/errors.js",
       namedImports: ["StitchError"],
     });
+    if (classBindings.some((b) => b.returns.kind === "generation")) {
+      sourceFile.addImportDeclaration({
+        moduleSpecifier: "../../src/generation.js",
+        namedImports: ["Generation"],
+      });
+    }
     if (namedTypes.size > 0) {
       sourceFile.addImportDeclaration({
         moduleSpecifier: "./types.generated.js",
@@ -1057,11 +1090,14 @@ async function main() {
         namedTypes,
         `${binding.class}.${binding.method}`,
       );
-      const returnTypeStr = binding.returns.class
-        ? binding.returns.array
-          ? `${binding.returns.class}[]`
+      const returnTypeStr =
+        binding.returns.kind === "generation"
+          ? `Generation<${binding.returns.class}, ${toResponseName(binding.tool)}>`
           : binding.returns.class
-        : binding.returns.type || "any";
+            ? binding.returns.array
+              ? `${binding.returns.class}[]`
+              : binding.returns.class
+            : binding.returns.type || "any";
 
       cls.addMethod({
         name: binding.method,

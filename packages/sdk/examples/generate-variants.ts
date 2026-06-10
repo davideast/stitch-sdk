@@ -51,7 +51,7 @@ console.log("   (This may take up to a minute)");
 try {
   // Note: The method is named `variants` in the SDK domain class (as mapped in domain-map.json).
   // The issue refers to it conceptually as "generateVariants".
-  const variantScreens = await targetScreen.variants(
+  const { screens: variantScreens } = await targetScreen.variants(
     variantsPrompt,
     variantOptions,
   );
