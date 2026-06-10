@@ -77,7 +77,7 @@ runIfKey("Project.uploadImage (E2E)", () => {
     const created = await sdk.createProject({
       title: `upload-e2e-${Date.now()}`,
     });
-    project = new Project(client, created.projectId);
+    project = sdk.project(created.projectId);
     console.log("E2E upload project:", project.projectId);
   }, 30000);
 

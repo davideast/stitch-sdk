@@ -28,6 +28,71 @@ import { repairToolSchemas } from "./schema-repair.js";
 import { EntityManager } from "./entity-manager.js";
 
 /**
+ * Parse a raw MCP CallToolResult envelope into the tool's payload.
+ *
+ * Shared by StitchToolClient and the proxy's virtual-tool path so both
+ * see identical payloads (structuredContent first, then JSON-in-text)
+ * and identical error behavior (isError → StitchError).
+ */
+export function parseToolResult<T>(result: any, name: string): T {
+  if (result.isError) {
+    const errorText = (result.content as any[])
+      .map((c: any) => (c.type === "text" ? c.text : ""))
+      .join("");
+
+    let code: StitchErrorCode = "UNKNOWN_ERROR";
+    const lowerErrorText = errorText.toLowerCase();
+
+    if (
+      lowerErrorText.includes("rate limit") ||
+      lowerErrorText.includes("429")
+    ) {
+      code = "RATE_LIMITED";
+    } else if (
+      lowerErrorText.includes("not found") ||
+      lowerErrorText.includes("404")
+    ) {
+      code = "NOT_FOUND";
+    } else if (
+      lowerErrorText.includes("permission") ||
+      lowerErrorText.includes("403")
+    ) {
+      code = "PERMISSION_DENIED";
+    } else if (
+      lowerErrorText.includes("unauthorized") ||
+      lowerErrorText.includes("unauthenticated") ||
+      lowerErrorText.includes("invalid authentication") ||
+      lowerErrorText.includes("401")
+    ) {
+      code = "AUTH_FAILED";
+    }
+
+    throw new StitchError({
+      code,
+      message: `Tool Call Failed [${name}]: ${errorText}`,
+      recoverable: code === "RATE_LIMITED",
+    });
+  }
+
+  // Stitch specific parsing: Check structuredContent first, then JSON in text
+  const anyResult = result as any;
+  if (anyResult.structuredContent) return anyResult.structuredContent as T;
+
+  const textContent = (result.content as any[]).find(
+    (c: any) => c.type === "text",
+  );
+  if (textContent && textContent.type === "text") {
+    try {
+      return JSON.parse(textContent.text) as T;
+    } catch {
+      return textContent.text as unknown as T;
+    }
+  }
+
+  return anyResult as T;
+}
+
+/**
  * Authenticated tool pipe for the Stitch MCP Server.
  *
  * Designed for agents and orchestration scripts that forward JSON payloads
@@ -87,61 +152,7 @@ export class StitchToolClient implements StitchToolClientSpec {
   }
 
   private parseToolResponse<T>(result: any, name: string): T {
-    if (result.isError) {
-      const errorText = (result.content as any[])
-        .map((c: any) => (c.type === "text" ? c.text : ""))
-        .join("");
-
-      let code: StitchErrorCode = "UNKNOWN_ERROR";
-      const lowerErrorText = errorText.toLowerCase();
-
-      if (
-        lowerErrorText.includes("rate limit") ||
-        lowerErrorText.includes("429")
-      ) {
-        code = "RATE_LIMITED";
-      } else if (
-        lowerErrorText.includes("not found") ||
-        lowerErrorText.includes("404")
-      ) {
-        code = "NOT_FOUND";
-      } else if (
-        lowerErrorText.includes("permission") ||
-        lowerErrorText.includes("403")
-      ) {
-        code = "PERMISSION_DENIED";
-      } else if (
-        lowerErrorText.includes("unauthorized") ||
-        lowerErrorText.includes("unauthenticated") ||
-        lowerErrorText.includes("invalid authentication") ||
-        lowerErrorText.includes("401")
-      ) {
-        code = "AUTH_FAILED";
-      }
-
-      throw new StitchError({
-        code,
-        message: `Tool Call Failed [${name}]: ${errorText}`,
-        recoverable: code === "RATE_LIMITED",
-      });
-    }
-
-    // Stitch specific parsing: Check structuredContent first, then JSON in text
-    const anyResult = result as any;
-    if (anyResult.structuredContent) return anyResult.structuredContent as T;
-
-    const textContent = (result.content as any[]).find(
-      (c: any) => c.type === "text",
-    );
-    if (textContent && textContent.type === "text") {
-      try {
-        return JSON.parse(textContent.text) as T;
-      } catch {
-        return textContent.text as unknown as T;
-      }
-    }
-
-    return anyResult as T;
+    return parseToolResult<T>(result, name);
   }
 
   async connect() {

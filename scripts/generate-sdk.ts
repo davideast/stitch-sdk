@@ -616,6 +616,14 @@ function buildConstructorBody(
   config: ReturnType<typeof DomainMap.parse>["classes"][string],
 ): string[] {
   const statements: string[] = [];
+  // Direct construction with a string ID silently produced instances with
+  // undefined reference keys (post-#358). Fail loudly with the supported
+  // alternative instead. EntityManager never passes strings here.
+  statements.push(`if (typeof data === "string") {`);
+  statements.push(
+    `  throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });`,
+  );
+  statements.push(`}`);
   statements.push(`this.data = typeof data === "object" ? data : undefined;`);
   return statements;
 }

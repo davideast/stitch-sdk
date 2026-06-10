@@ -133,7 +133,13 @@ export class UploadHandler implements UploadSpec {
             screenData.id = parts[1];
           }
         }
-        return new Screen(this.client as any, screenData);
+        // Resolve through the identity map — direct construction would
+        // leave projectId/screenId unhydrated (regression in #358).
+        return this.client.entities.resolve(
+          Screen,
+          ["projectId", "screenId"],
+          screenData,
+        );
       });
 
       return { success: true, screens };

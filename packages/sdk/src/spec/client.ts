@@ -80,6 +80,13 @@ export interface StitchToolClientSpec {
   description: "Authenticated tool pipe for Stitch MCP Server";
 
   /**
+   * Identity-map manager. ALL entity instances (Project, Screen, ...)
+   * must be obtained through entities.resolve — never constructed
+   * directly — so reference keys are hydrated and instances deduplicated.
+   */
+  entities: import("../entity-manager.js").EntityManager;
+
+  /**
    * Validate configuration and establish connection.
    * MUST handle auth header injection based on config.
    * - API Key: Inject `X-Goog-Api-Key` header.

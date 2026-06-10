@@ -15,10 +15,16 @@
 import { Project } from "../project-ext.js";
 import { VirtualToolDefinition } from "../spec/client.js";
 import { forwardToStitch } from "./client.js";
+import { parseToolResult } from "../client.js";
+import { EntityManager } from "../entity-manager.js";
 
-// Helper to create a project instance with a client
-function createProject(projectId: string, client: any) {
-  return new Project(client, projectId);
+/**
+ * Create a Project handle bound to a client, via the identity map.
+ * Exported for tests: direct `new Project(client, id)` does NOT hydrate
+ * projectId (that regression broke this tool silently once already).
+ */
+export function createProject(projectId: string, client: any): Project {
+  return client.entities.resolve(Project, ["projectId"], { projectId });
 }
 
 export const downloadAssetsTool: VirtualToolDefinition = {
@@ -43,28 +49,36 @@ export const downloadAssetsTool: VirtualToolDefinition = {
   },
 };
 
+/** Single registry: listTools, routing, and shadow-detection all derive from it. */
+export const virtualTools: VirtualToolDefinition[] = [downloadAssetsTool];
+
 export async function handleVirtualTool(
   name: string,
   args: any,
   ctx: any,
 ): Promise<any> {
-  const dummyClient = {
+  // Minimal client adapter over the proxy transport. callTool must return
+  // the PARSED tool payload (same contract as StitchToolClient.callTool):
+  // forwardToStitch yields the raw MCP envelope, and isError envelopes
+  // must throw instead of silently reading as empty results.
+  const proxyClient: any = {
     callTool: async (toolName: string, toolArgs: any) => {
-      return forwardToStitch(ctx.config, "tools/call", {
+      const envelope = await forwardToStitch(ctx.config, "tools/call", {
         name: toolName,
         arguments: toolArgs,
       });
+      return parseToolResult(envelope, toolName);
     },
   };
+  proxyClient.entities = new EntityManager(proxyClient);
 
-  switch (name) {
-    case "download_assets":
-      return downloadAssetsTool.execute(dummyClient as any, args);
-    default:
-      throw new Error(`Unknown virtual tool: ${name}`);
+  const tool = virtualTools.find((t) => t.name === name);
+  if (!tool) {
+    throw new Error(`Unknown virtual tool: ${name}`);
   }
+  return tool.execute(proxyClient, args);
 }
 
 export function isVirtualTool(name: string): boolean {
-  return ["download_assets"].includes(name);
+  return virtualTools.some((t) => t.name === name);
 }

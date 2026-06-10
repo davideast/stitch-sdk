@@ -123,8 +123,12 @@ export class EntityManager {
     parsedValues: Record<string, string>,
     data: any,
   ): T {
-    // Direct instantiation is restricted for users, but allowed here
-    const instance = new EntityClass(this.client, data) as any;
+    // Direct instantiation is restricted for users, but allowed here.
+    // Constructors reject raw strings; identity is carried via parsedValues.
+    const instance = new EntityClass(
+      this.client,
+      typeof data === "object" ? data : undefined,
+    ) as any;
     for (const key of referenceKeys) {
       if (parsedValues[key]) {
         instance[key] = parsedValues[key];
