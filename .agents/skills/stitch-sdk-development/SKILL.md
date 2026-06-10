@@ -56,15 +56,8 @@ When the Stitch MCP server adds a new tool:
 {
   "Screen": {
     "constructorParams": ["projectId", "screenId"],
-    "fieldMapping": {
-      "projectId": { "from": "projectId" },
-      "screenId": {
-        "from": "id",
-        "fallback": { "field": "name", "splitOn": "/screens/" }
-      }
-    },
     "parentField": "projectId",
-    "idField": "screenId"
+    "reference": { "keys": ["projectId", "screenId"] }
   }
 }
 ```
@@ -195,8 +188,8 @@ For humans writing precise, programmatic scripts. Generated domain facade over `
 
 ```typescript
 const project = await stitch.createProject({ title: "My App" });
-const screen = await project.generate("A login page");
-const html = await screen.getHtml();
+const generation = await project.generate("A login page");
+const html = await generation.first.getHtml();
 ```
 
 Both modalities share `StitchToolClient` underneath. The domain classes are a typed layer over `callTool`.
