@@ -986,9 +986,12 @@ async function main() {
     sourceFile.addStatements(`/**\n * ${headerComment}\n */\n`);
 
     // Imports
+    // Depend on the SPEC interface, not the concrete client: tests and
+    // alternative transports inject spec-conforming fakes without
+    // vi.mock'ing the class [V1_PLAN §4.1].
     sourceFile.addImportDeclaration({
-      moduleSpecifier: "../../src/client.js",
-      namedImports: [{ name: "StitchToolClient", isTypeOnly: true }],
+      moduleSpecifier: "../../src/spec/client.js",
+      namedImports: [{ name: "StitchToolClientSpec", isTypeOnly: true }],
     });
     sourceFile.addImportDeclaration({
       moduleSpecifier: "../../src/spec/errors.js",
@@ -1046,7 +1049,7 @@ async function main() {
     if (config.isRoot) {
       cls.addConstructor({
         parameters: [
-          { name: "client", type: "StitchToolClient", scope: clientScope },
+          { name: "client", type: "StitchToolClientSpec", scope: clientScope },
         ],
       });
     } else {
@@ -1080,7 +1083,7 @@ async function main() {
         // Public path: factories + method returns.
         scope: Scope.Protected,
         parameters: [
-          { name: "client", type: "StitchToolClient", scope: clientScope },
+          { name: "client", type: "StitchToolClientSpec", scope: clientScope },
           { name: "data", type: "any" },
         ],
         statements: buildConstructorBody(config),

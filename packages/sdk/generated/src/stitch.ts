@@ -5,7 +5,7 @@ DO NOT EDIT — changes will be overwritten.
 Source: tools-manifest.json (sha256:f20f91d571a1...)
         domain-map.json     (sha256:9e19c2134270...)
  */
-import { type StitchToolClient } from "../../src/client.js";
+import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
 import { ListProjectsResponse, CreateProjectResponse } from "./responses.generated.js";
@@ -13,7 +13,7 @@ import { Project } from "../../src/project-ext.js";
 
 /** Main entry point. Manages projects. */
 export class Stitch {
-    constructor(private client: StitchToolClient) {
+    constructor(private client: StitchToolClientSpec) {
     }
 
     /**

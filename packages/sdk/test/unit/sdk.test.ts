@@ -50,7 +50,6 @@ describe("SDK Unit Tests", () => {
         ["projectId", "screenId"],
         screenData,
       );
-      console.log("SCREEN:", screen);
       const result = await screen.getHtmlUrl();
 
       // Should not call API — uses cached data.htmlCode.downloadUrl

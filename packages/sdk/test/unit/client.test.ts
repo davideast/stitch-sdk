@@ -27,19 +27,17 @@ vi.mock("child_process", () => ({
 
 describe("StitchToolClient", () => {
   const originalFetch = globalThis.fetch;
-  const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    // Reset mocks and environment variables before each test
     vi.clearAllMocks();
-    process.env = { ...originalEnv };
   });
 
   afterEach(() => {
-    // Restore original state
+    // Restore original state. Env mutations go through vi.stubEnv, never
+    // whole-object process.env swaps (order-sensitive under parallel suites).
     globalThis.fetch = originalFetch;
     delete (globalThis.fetch as any).__stitchPatched;
-    process.env = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   // --- NEW DUAL-AUTH TESTS ---
@@ -50,20 +48,20 @@ describe("StitchToolClient", () => {
 
   it("should throw ZodError if no credentials provided", () => {
     // Ensure no env vars are set that could satisfy the validation
-    delete process.env.STITCH_API_KEY;
-    delete process.env.STITCH_ACCESS_TOKEN;
-    delete process.env.STITCH_PROJECT_ID;
-    delete process.env.GOOGLE_CLOUD_PROJECT;
+    vi.stubEnv("STITCH_API_KEY", "");
+    vi.stubEnv("STITCH_ACCESS_TOKEN", "");
+    vi.stubEnv("STITCH_PROJECT_ID", "");
+    vi.stubEnv("GOOGLE_CLOUD_PROJECT", "");
 
     expect(() => new StitchToolClient({})).toThrow(ZodError);
     expect(() => new StitchToolClient()).toThrow(ZodError);
   });
 
   it("should throw if accessToken is provided without projectId", () => {
-    delete process.env.STITCH_API_KEY;
-    delete process.env.STITCH_ACCESS_TOKEN;
-    delete process.env.STITCH_PROJECT_ID;
-    delete process.env.GOOGLE_CLOUD_PROJECT;
+    vi.stubEnv("STITCH_API_KEY", "");
+    vi.stubEnv("STITCH_ACCESS_TOKEN", "");
+    vi.stubEnv("STITCH_PROJECT_ID", "");
+    vi.stubEnv("GOOGLE_CLOUD_PROJECT", "");
 
     expect(() => new StitchToolClient({ accessToken: "test-token" })).toThrow(
       ZodError,
@@ -71,14 +69,14 @@ describe("StitchToolClient", () => {
   });
 
   it("should use STITCH_API_KEY env var as a fallback", () => {
-    process.env.STITCH_API_KEY = "env-key";
+    vi.stubEnv("STITCH_API_KEY", "env-key");
     const client = new StitchToolClient();
     expect(client).toBeDefined();
   });
 
   it("should use STITCH_ACCESS_TOKEN and GOOGLE_CLOUD_PROJECT env vars", () => {
-    process.env.STITCH_ACCESS_TOKEN = "env-token";
-    process.env.GOOGLE_CLOUD_PROJECT = "env-project";
+    vi.stubEnv("STITCH_ACCESS_TOKEN", "env-token");
+    vi.stubEnv("GOOGLE_CLOUD_PROJECT", "env-project");
     const client = new StitchToolClient();
     expect(client).toBeDefined();
   });
@@ -92,7 +90,7 @@ describe("StitchToolClient", () => {
 
   // --- EXISTING OAUTH TESTS (ADAPTED) ---
   it("should validate token on connect with OAuth", async () => {
-    delete process.env.STITCH_API_KEY;
+    vi.stubEnv("STITCH_API_KEY", "");
 
     const client = new StitchToolClient({
       accessToken: "initial_token",
@@ -114,7 +112,7 @@ describe("StitchToolClient", () => {
     });
 
     it("should set Bearer token and project for OAuth auth", () => {
-      delete process.env.STITCH_API_KEY;
+      vi.stubEnv("STITCH_API_KEY", "");
       const client = new StitchToolClient({
         accessToken: "ya29.token",
         projectId: "proj-1",
@@ -359,26 +357,26 @@ describe("StitchToolClient", () => {
   // ─── Branch 11: unified config/env (D5 REVISED) ──────────────────
   describe("config env fallbacks", () => {
     beforeEach(() => {
-      delete process.env.STITCH_API_KEY;
-      delete process.env.STITCH_ACCESS_TOKEN;
-      delete process.env.STITCH_PROJECT_ID;
-      delete process.env.GOOGLE_CLOUD_PROJECT;
-      delete process.env.STITCH_BASE_URL;
-      delete process.env.STITCH_HOST;
+      vi.stubEnv("STITCH_API_KEY", "");
+      vi.stubEnv("STITCH_ACCESS_TOKEN", "");
+      vi.stubEnv("STITCH_PROJECT_ID", "");
+      vi.stubEnv("GOOGLE_CLOUD_PROJECT", "");
+      vi.stubEnv("STITCH_BASE_URL", "");
+      vi.stubEnv("STITCH_HOST", "");
     });
 
     it("prefers STITCH_PROJECT_ID over GOOGLE_CLOUD_PROJECT", () => {
-      process.env.STITCH_ACCESS_TOKEN = "tok";
-      process.env.STITCH_PROJECT_ID = "stitch-proj";
-      process.env.GOOGLE_CLOUD_PROJECT = "gcp-proj";
+      vi.stubEnv("STITCH_ACCESS_TOKEN", "tok");
+      vi.stubEnv("STITCH_PROJECT_ID", "stitch-proj");
+      vi.stubEnv("GOOGLE_CLOUD_PROJECT", "gcp-proj");
       const client = new StitchToolClient();
       expect(client["config"].projectId).toBe("stitch-proj");
     });
 
     it("GOOGLE_CLOUD_PROJECT stays first-class (no warning)", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      process.env.STITCH_ACCESS_TOKEN = "tok";
-      process.env.GOOGLE_CLOUD_PROJECT = "gcp-proj";
+      vi.stubEnv("STITCH_ACCESS_TOKEN", "tok");
+      vi.stubEnv("GOOGLE_CLOUD_PROJECT", "gcp-proj");
       const client = new StitchToolClient();
       expect(client["config"].projectId).toBe("gcp-proj");
       expect(warnSpy).not.toHaveBeenCalled();
@@ -386,14 +384,14 @@ describe("StitchToolClient", () => {
     });
 
     it("reads baseUrl from STITCH_BASE_URL", () => {
-      process.env.STITCH_API_KEY = "k";
-      process.env.STITCH_BASE_URL = "https://staging.example.com/mcp";
+      vi.stubEnv("STITCH_API_KEY", "k");
+      vi.stubEnv("STITCH_BASE_URL", "https://staging.example.com/mcp");
       const client = new StitchToolClient();
       expect(client["config"].baseUrl).toBe("https://staging.example.com/mcp");
     });
 
     it("explicit baseUrl wins over STITCH_BASE_URL", () => {
-      process.env.STITCH_BASE_URL = "https://env.example.com/mcp";
+      vi.stubEnv("STITCH_BASE_URL", "https://env.example.com/mcp");
       const client = new StitchToolClient({
         apiKey: "k",
         baseUrl: "https://explicit.example.com/mcp",
@@ -404,8 +402,8 @@ describe("StitchToolClient", () => {
     it("STITCH_HOST is honored as a deprecated alias and warns once per process", () => {
       __resetStitchHostWarning();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      process.env.STITCH_API_KEY = "k";
-      process.env.STITCH_HOST = "https://legacy.example.com/mcp";
+      vi.stubEnv("STITCH_API_KEY", "k");
+      vi.stubEnv("STITCH_HOST", "https://legacy.example.com/mcp");
 
       const client1 = new StitchToolClient();
       expect(client1["config"].baseUrl).toBe("https://legacy.example.com/mcp");
@@ -422,9 +420,9 @@ describe("StitchToolClient", () => {
     it("STITCH_BASE_URL beats STITCH_HOST and suppresses the warning", () => {
       __resetStitchHostWarning();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      process.env.STITCH_API_KEY = "k";
-      process.env.STITCH_BASE_URL = "https://new.example.com/mcp";
-      process.env.STITCH_HOST = "https://legacy.example.com/mcp";
+      vi.stubEnv("STITCH_API_KEY", "k");
+      vi.stubEnv("STITCH_BASE_URL", "https://new.example.com/mcp");
+      vi.stubEnv("STITCH_HOST", "https://legacy.example.com/mcp");
       const client = new StitchToolClient();
       expect(client["config"].baseUrl).toBe("https://new.example.com/mcp");
       expect(warnSpy).not.toHaveBeenCalled();

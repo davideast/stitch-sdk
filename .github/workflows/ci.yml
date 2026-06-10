@@ -46,8 +46,8 @@ jobs:
       - name: Skill/IR Consistency
         run: bun run check:skills
 
-      - name: Run Tests
-        run: bun run test
+      - name: Run Tests (with coverage thresholds)
+        run: cd packages/sdk && bun run test:coverage
 
       - name: Production Build
         run: bun run build

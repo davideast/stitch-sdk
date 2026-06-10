@@ -6,7 +6,7 @@ exports[`fixture output snapshots root.ts matches snapshot 1`] = `
 DO NOT EDIT — changes will be overwritten.
 
  */
-import { type StitchToolClient } from "../../src/client.js";
+import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { GizmoInput, File, Component } from "./types.generated.js";
 import { CreateGizmoResponse, ListGizmosResponse } from "./responses.generated.js";
@@ -14,7 +14,7 @@ import { Gizmo } from "./gizmo.js";
 
 /** Fixture root entry point. */
 export class Root {
-    constructor(private client: StitchToolClient) {
+    constructor(private client: StitchToolClientSpec) {
     }
 
     /**
@@ -57,7 +57,7 @@ exports[`fixture output snapshots gizmo.ts matches snapshot 1`] = `
 DO NOT EDIT — changes will be overwritten.
 
  */
-import { type StitchToolClient } from "../../src/client.js";
+import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { GizmoInput, File, Component } from "./types.generated.js";
 import { GetGizmoAssetResponse, SpawnWidgetsResponse } from "./responses.generated.js";
@@ -70,7 +70,7 @@ export class Gizmo {
     public readonly gizmoId!: string;
     public data: unknown;
 
-    protected constructor(private client: StitchToolClient, data: any) {
+    protected constructor(private client: StitchToolClientSpec, data: any) {
         if (typeof data === "string") {
           throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
         }
@@ -130,7 +130,7 @@ exports[`fixture output snapshots widget.ts matches snapshot 1`] = `
 DO NOT EDIT — changes will be overwritten.
 
  */
-import { type StitchToolClient } from "../../src/client.js";
+import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
 import { GizmoInput, File, Component } from "./types.generated.js";
@@ -144,7 +144,7 @@ export class Widget {
     public readonly widgetId!: string;
     public data: unknown;
 
-    protected constructor(private client: StitchToolClient, data: any) {
+    protected constructor(private client: StitchToolClientSpec, data: any) {
         if (typeof data === "string") {
           throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
         }

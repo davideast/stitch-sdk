@@ -5,7 +5,7 @@ DO NOT EDIT — changes will be overwritten.
 Source: tools-manifest.json (sha256:f20f91d571a1...)
         domain-map.json     (sha256:9e19c2134270...)
  */
-import { type StitchToolClient } from "../../src/client.js";
+import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
 import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
@@ -20,7 +20,7 @@ export class Project {
     public readonly projectId!: string;
     public data: unknown;
 
-    protected constructor(protected client: StitchToolClient, data: any) {
+    protected constructor(protected client: StitchToolClientSpec, data: any) {
         if (typeof data === "string") {
           throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
         }
