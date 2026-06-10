@@ -52,6 +52,7 @@
     "!dist/test",
     "!dist/**/*.tsbuildinfo",
     "!dist/package.json",
+    "!dist/**/*.map",
     "README.md"
   ],
   "publishConfig": {

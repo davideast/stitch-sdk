@@ -50,6 +50,32 @@ function assert(condition: boolean, message: string) {
 
 console.log("🔑 STITCH_API_KEY found. Running e2e tests...\n");
 
+let e2eProjectId: string | undefined;
+
+/**
+ * Best-effort cleanup. No delete-project tool exists on the server yet
+ * (requested — see V1_EXECUTION.md needs-human ledger); this adopts it
+ * automatically the moment it ships. Until then, e2e-sdk-* naming marks
+ * projects as sweepable test artifacts.
+ */
+async function teardown(): Promise<void> {
+  if (!e2eProjectId) return;
+  try {
+    const { tools } = await stitch.listTools();
+    const deleteTool = (tools as any[]).find((t) => /delete.*project/.test(t.name));
+    if (!deleteTool) {
+      console.log(
+        `\n🧹 No delete-project tool on the server yet — project ${e2eProjectId} left behind (e2e-sdk-* naming marks it sweepable).`,
+      );
+      return;
+    }
+    await stitch.callTool(deleteTool.name, { projectId: e2eProjectId });
+    console.log(`\n🧹 Deleted e2e project ${e2eProjectId}`);
+  } catch (err) {
+    console.warn(`\n🧹 Teardown failed (non-fatal): ${err}`);
+  }
+}
+
 try {
   // ── 1. List projects ────────────────────────────────────────
   console.log("📋 Listing projects...");
@@ -58,7 +84,12 @@ try {
 
   // ── 2. Create project via callTool ────────────────────────────
   console.log("\n📦 Creating project via callTool...");
-  const projectName = `E2E Test ${new Date().toISOString().slice(0, 16)}`;
+  const runId = `${Date.now().toString(36)}`;
+  // Naming convention e2e-sdk-<runId> marks projects as sweepable test
+  // artifacts. No delete tool exists on the server yet (requested —
+  // see V1_EXECUTION.md needs-human ledger); teardown() adopts it the
+  // moment it ships.
+  const projectName = `e2e-sdk-${runId}`;
   const createResult = await stitch.callTool("create_project", {
     title: projectName,
   });
@@ -69,6 +100,7 @@ try {
     typeof createdId === "string" && createdId.length > 0,
     `Created project: ${createdId}`,
   );
+  e2eProjectId = createdId;
 
   // ── 3. Retrieve project by identity map ─────────────────────
   console.log("\n🔍 Retrieving project by identity map...");
@@ -225,5 +257,6 @@ if (failures > 0) {
   console.error(`💥 ${failures} e2e check(s) failed, ${passed} passed.`);
   process.exit(1);
 } else {
+  await teardown();
   console.log(`✅ All ${passed} e2e checks passed.\n`);
 }

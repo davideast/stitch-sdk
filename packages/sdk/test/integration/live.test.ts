@@ -18,7 +18,9 @@ import { Stitch } from "../../generated/src/stitch.js";
 import { StitchToolClient } from "../../src/client.js";
 import { Project } from "../../src/project-ext.js";
 
-const runIfConfigured = process.env.STITCH_ACCESS_TOKEN
+// Either auth mode unlocks the suite — API-key-only environments were
+// previously locked out entirely [V1_PLAN §4.2].
+const runIfConfigured = process.env.STITCH_ACCESS_TOKEN || process.env.STITCH_API_KEY
   ? describe
   : describe.skip;
 
@@ -82,7 +84,7 @@ runIfKey("Project.uploadImage (E2E)", () => {
   }, 30000);
 
   it("should return a non-empty Screen[] after uploading a PNG", async () => {
-    const screens = await project.uploadImage(FIXTURE_PNG, {
+    const screens = await project.upload(FIXTURE_PNG, {
       title: "e2e-upload-test",
     });
 
@@ -91,7 +93,7 @@ runIfKey("Project.uploadImage (E2E)", () => {
   }, 60000);
 
   it("should return a screen with a non-empty id", async () => {
-    const [screen] = await project.uploadImage(FIXTURE_PNG, {
+    const [screen] = await project.upload(FIXTURE_PNG, {
       title: "e2e-id-check",
     });
 
@@ -99,12 +101,12 @@ runIfKey("Project.uploadImage (E2E)", () => {
     console.log("Uploaded screen id:", screen.id);
   }, 60000);
 
-  it("should return a screen whose getImage() resolves to a URL", async () => {
-    const [screen] = await project.uploadImage(FIXTURE_PNG, {
+  it("should return a screen whose getImageUrl() resolves to a URL", async () => {
+    const [screen] = await project.upload(FIXTURE_PNG, {
       title: "e2e-image-url",
     });
 
-    const url = await screen.getImage();
+    const url = await screen.getImageUrl();
     expect(typeof url).toBe("string");
     expect(url.length).toBeGreaterThan(0);
     console.log("Uploaded screen image URL:", url);

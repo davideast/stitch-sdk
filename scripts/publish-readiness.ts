@@ -30,7 +30,13 @@
  */
 
 import { resolve } from "node:path";
-import { existsSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { execSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import assert from "node:assert";
@@ -40,6 +46,19 @@ const SDK_DIR = resolve(ROOT_DIR, "packages/sdk");
 
 let passed = 0;
 let failed = 0;
+
+// Artifacts to remove even when a check throws mid-way (stale tarballs
+// previously survived failures and poisoned the next run).
+const cleanupPaths: string[] = [];
+process.on("exit", () => {
+  for (const p of cleanupPaths) {
+    try {
+      rmSync(p, { recursive: true, force: true });
+    } catch {
+      /* best effort */
+    }
+  }
+});
 
 function check(name: string, fn: () => void) {
   try {
@@ -172,7 +191,7 @@ check("README.md exists in package dir", () => {
 
 // ── 4. Pack Contents ────────────────────────────────────────────────────────
 console.log("\n📦 Pack Contents");
-const packOutput = execSync("npm pack --dry-run --json 2>/dev/null", {
+const packOutput = execSync("npm pack --dry-run --json", {
   cwd: SDK_DIR,
   encoding: "utf8",
 });
@@ -251,21 +270,25 @@ let tempDir: string | null = null;
 
 check("npm pack → install → import works", () => {
   // Pack
-  const tarball = execSync("npm pack 2>/dev/null", {
+  // No shell redirections in exec strings (Windows-hostile); take the
+  // last stdout line as the tarball name.
+  const packOut = execSync("npm pack", {
     cwd: SDK_DIR,
     encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
   }).trim();
+  const tarball = packOut.split("\n").at(-1)!.trim();
   const tarballPath = resolve(SDK_DIR, tarball);
+  cleanupPaths.push(tarballPath);
 
   // Create temp project
   tempDir = mkdtempSync(resolve(tmpdir(), "stitch-sdk-test-"));
-  execSync('npm init -y 2>/dev/null && npm pkg set type="module"', {
-    cwd: tempDir,
-    stdio: "pipe",
-  });
+  cleanupPaths.push(tempDir);
+  execSync("npm init -y", { cwd: tempDir, stdio: "pipe" });
+  execSync('npm pkg set type="module"', { cwd: tempDir, stdio: "pipe" });
 
   // Install from tarball
-  execSync(`npm install ${tarballPath} 2>/dev/null`, {
+  execSync(`npm install ${tarballPath}`, {
     cwd: tempDir,
     stdio: "pipe",
   });
@@ -283,7 +306,6 @@ check("npm pack → install → import works", () => {
     console.log("All exports verified ✓");
   `;
 
-  const { writeFileSync } = require("fs");
   writeFileSync(resolve(tempDir, "test.mjs"), testScript);
 
   execSync("node test.mjs", {
