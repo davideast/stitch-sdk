@@ -253,6 +253,12 @@ export const Binding = z
     class: z.string(),
     /** Method name on the class */
     method: z.string(),
+    /**
+     * JSDoc override. Without it the tool's description is used, which
+     * is wrong for bindings whose semantics differ from the raw tool
+     * (e.g. getHtmlUrl wraps get_screen).
+     */
+    description: z.string().optional(),
     /** Argument routing specs */
     args: z.record(z.string(), ArgSpec),
     /** Return value spec with projection */

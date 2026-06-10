@@ -148,14 +148,14 @@ describe("stitch singleton (lazy-on-invoke proxy)", () => {
     expect(() => stitch.projects).not.toThrow();
     expect(() => stitch.callTool).not.toThrow();
     expect(typeof stitch.projects).toBe("function");
-    expect(stitch.toolMap).toBeDefined();
+    // toolMap moved to "@google/stitch-sdk/tools" in v1/18 (bundle hygiene)
+    expect((stitch as any).toolMap).toBeUndefined();
   });
 
   it("introspection (inspect / Object.keys) without credentials does not throw", () => {
     expect(() => inspect(stitch)).not.toThrow();
     expect(() => Object.keys(stitch)).not.toThrow();
     expect(Object.keys(stitch)).toContain("projects");
-    expect(Object.keys(stitch)).toContain("toolMap");
   });
 
   it("'in' operator reflects the public surface without constructing a client", () => {
@@ -164,7 +164,7 @@ describe("stitch singleton (lazy-on-invoke proxy)", () => {
     expect("callTool" in stitch).toBe(true);
     expect("listTools" in stitch).toBe(true);
     expect("close" in stitch).toBe(true);
-    expect("toolMap" in stitch).toBe(true);
+    expect("toolMap" in stitch).toBe(false); // moved to ./tools subpath
     expect("definitelyNotAMethod" in stitch).toBe(false);
   });
 

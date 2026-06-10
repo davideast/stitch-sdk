@@ -54,3 +54,6 @@ jobs:
 
       - name: Smoke Test
         run: bun run test:smoke
+
+      - name: Bundle Size (root entry budget)
+        run: bun run check:bundle

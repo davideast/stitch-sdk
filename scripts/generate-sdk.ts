@@ -1133,7 +1133,7 @@ async function main() {
         parameters: methodParams,
         docs: [
           {
-            description: `${tool.description?.split("\n")[0].trim() || binding.method}\nTool: ${binding.tool}`,
+            description: `${binding.description ?? (tool.description?.split("\n")[0].trim() || binding.method)}\nTool: ${binding.tool}`,
           },
         ],
         statements: buildMethodBody(binding, className, domainMap),

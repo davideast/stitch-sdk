@@ -285,7 +285,8 @@
       "returns": {
         "class": "Screen",
         "projection": []
-      }
+      },
+      "description": "Fetch a screen by ID and return its identity-mapped handle."
     },
     {
       "tool": "get_screen",
@@ -325,7 +326,8 @@
         ],
         "description": "Use cached HTML download URL from generation response if available",
         "writeBack": true
-      }
+      },
+      "description": "Get the signed download URL for this screen's HTML. Cache-aware: served from generation data when present; responses are written back to the cache."
     },
     {
       "tool": "get_screen",
@@ -365,7 +367,8 @@
         ],
         "description": "Use cached screenshot URL from generation response",
         "writeBack": true
-      }
+      },
+      "description": "Get the signed download URL for this screen's screenshot. Cache-aware: served from generation data when present; responses are written back to the cache."
     },
     {
       "tool": "create_design_system",

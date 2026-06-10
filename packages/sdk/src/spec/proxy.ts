@@ -38,8 +38,8 @@ export const StitchProxyConfigSchema = z.object({
   /** Version of the local proxy server. Default: 1.0.0 */
   version: z.string().default("1.0.0"),
 
-  /** Protocol version to use for Stitch JSON-RPC connection. Default: '2024-11-05' */
-  protocolVersion: z.string().default("2024-11-05"),
+  /** Protocol version to use for Stitch JSON-RPC connection. Default: '2025-06-18' */
+  protocolVersion: z.string().default("2025-06-18"),
 }).refine((data) => !data.accessToken || data.apiKey || !!data.quotaProjectId, {
   // Aligned with StitchConfigSchema: token auth needs a quota project.
   message:

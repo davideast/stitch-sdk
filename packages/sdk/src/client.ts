@@ -105,6 +105,7 @@ export function parseToolResult<T>(result: any, name: string): T {
       code,
       message: `Tool Call Failed [${name}]: ${errorText}`,
       recoverable: isRecoverable(code),
+      toolName: name,
     });
   }
 

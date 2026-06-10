@@ -39,6 +39,10 @@ export interface StitchErrorData {
   message: string;
   suggestion?: string;
   recoverable: boolean;
+  /** HTTP status, when the failure came from an HTTP response. */
+  status?: number;
+  /** MCP tool name, when the failure came from a tool call. */
+  toolName?: string;
 }
 
 /**
@@ -49,6 +53,10 @@ export class StitchError extends Error {
   public readonly code: StitchErrorCode;
   public readonly suggestion?: string;
   public readonly recoverable: boolean;
+  /** HTTP status, when the failure came from an HTTP response. */
+  public readonly status?: number;
+  /** MCP tool name, when the failure came from a tool call. */
+  public readonly toolName?: string;
 
   constructor(data: StitchErrorData) {
     super(data.message);
@@ -56,6 +64,8 @@ export class StitchError extends Error {
     this.code = data.code;
     this.suggestion = data.suggestion;
     this.recoverable = data.recoverable;
+    this.status = data.status;
+    this.toolName = data.toolName;
   }
 
   /**

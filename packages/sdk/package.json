@@ -34,8 +34,18 @@
     "./adk": {
       "types": "./dist/src/adk.d.ts",
       "import": "./dist/src/adk.js"
+    },
+    "./tools": {
+      "types": "./dist/src/tools.d.ts",
+      "import": "./dist/src/tools.js"
     }
   },
+  "sideEffects": [
+    "./dist/src/project-ext.js",
+    "./dist/src/screen-ext.js",
+    "./dist/src/adk-adapter.js",
+    "./dist/src/tools-adapter.js"
+  ],
   "files": [
     "dist",
     "!dist/tsconfig.tsbuildinfo",

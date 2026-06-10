@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:ba4df40dfd8a...)
+        domain-map.json     (sha256:9e19c2134270...)
  */
 import { type StitchToolClient } from "../../src/client.js";
 import { StitchError } from "../../src/spec/errors.js";
@@ -62,7 +62,7 @@ export class Project {
     }
 
     /**
-     * Retrieves the details of a specific screen within a project.
+     * Fetch a screen by ID and return its identity-mapped handle.
      * Tool: get_screen
      */
     async getScreen(screenId: string): Promise<Screen> {

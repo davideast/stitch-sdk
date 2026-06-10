@@ -15,7 +15,6 @@
 import { Stitch } from "../generated/src/stitch.js";
 import { StitchToolClient, resolveConfigWithEnv } from "./client.js";
 import { StitchConfigSchema, type StitchConfig } from "./spec/client.js";
-import { toolMap, type ToolInfo } from "./tool-map.js";
 
 /** Config surface accepted by getOrCreateClient — the full client config. */
 export interface SingletonClientConfig {
@@ -126,7 +125,7 @@ const DOMAIN_METHODS = new Set(
 );
 
 /** The full public surface the proxy reflects without constructing a client. */
-const PUBLIC_KEYS = ["toolMap", ...CLIENT_METHODS, ...DOMAIN_METHODS];
+const PUBLIC_KEYS = [...CLIENT_METHODS, ...DOMAIN_METHODS];
 
 /**
  * Lazy method wrappers: the underlying client/Stitch instance is only
@@ -169,7 +168,6 @@ function getMethodWrapper(
 }
 
 function getPublicValue(prop: string): unknown {
-  if (prop === "toolMap") return toolMap;
   return getMethodWrapper(prop);
 }
 
@@ -193,7 +191,6 @@ function getPublicValue(prop: string): unknown {
 export const stitch = new Proxy<
   Stitch &
     Pick<StitchToolClient, "listTools" | "callTool" | "close"> & {
-      toolMap: ReadonlyMap<string, ToolInfo>;
     }
 >({} as any, {
   get(_target, prop: string | symbol) {

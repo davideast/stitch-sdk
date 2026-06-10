@@ -21,6 +21,7 @@
     "typecheck": "turbo run typecheck",
     "validate:generated": "bun scripts/validate-generated.ts",
     "check:skills": "bun scripts/check-skill-consistency.ts",
+    "check:bundle": "bun scripts/check-bundle-size.ts",
     "version:sync": "bun scripts/sync-versions.ts",
     "publish:readiness": "bun scripts/publish-readiness.ts"
   },
