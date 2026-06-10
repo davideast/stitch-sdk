@@ -293,7 +293,7 @@ describe("SDK Unit Tests", () => {
         title: "My Dashboard",
       });
 
-      const project = await sdk.createProject("My Dashboard");
+      const project = await sdk.createProject({ title: "My Dashboard" });
 
       expect(mockClient.callTool).toHaveBeenCalledWith("create_project", {
         title: "My Dashboard",

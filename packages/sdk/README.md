@@ -10,7 +10,7 @@ Set your API key and generate a screen:
 import { stitch } from "@google/stitch-sdk";
 
 // STITCH_API_KEY must be set in the environment
-const project = await stitch.createProject("My App");
+const project = await stitch.createProject({ title: "My App" });
 const screen = await project.generate(
   "A login page with email and password fields",
 );

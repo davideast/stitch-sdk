@@ -24,7 +24,7 @@ export STITCH_API_KEY="your-api-key"
 ```typescript
 import { stitch } from "@google/stitch-sdk";
 
-const project = await stitch.createProject("My App");
+const project = await stitch.createProject({ title: "My App" });
 const screen = await project.generate("A settings page with dark theme");
 const html = await screen.getHtml(); // download URL for the HTML
 const imageUrl = await screen.getImage(); // download URL for the screenshot
@@ -44,7 +44,7 @@ const projects = await stitch.projects();
 const project = stitch.project("4044680601076201931");
 
 // Create a new project
-const newProject = await stitch.createProject("My App");
+const newProject = await stitch.createProject({ title: "My App" });
 ```
 
 ## Design Systems
@@ -106,6 +106,11 @@ The method reads the file from disk and posts it directly to the Stitch REST API
 const screen = await project.generate(
   "Login page with email and password fields",
 );
+
+// Optional settings go in a trailing options object
+const mobileScreen = await project.generate("A settings page", {
+  deviceType: "MOBILE",
+});
 
 // Edit an existing screen
 const edited = await screen.edit("Make the background dark and add a subtitle");
@@ -177,7 +182,7 @@ Error codes: `AUTH_FAILED`, `NOT_FOUND`, `PERMISSION_DENIED`, `RATE_LIMITED`, `N
 
 | Method                 | Returns              | Description                                 |
 | ---------------------- | -------------------- | ------------------------------------------- |
-| `createProject(title)` | `Promise<Project>`   | Create a new project                        |
+| `createProject(options?)` | `Promise<Project>` | Create a new project (`options.title`)     |
 | `projects()`           | `Promise<Project[]>` | List all projects                           |
 | `project(id)`          | `Project`            | Reference a project by ID (no network call) |
 
@@ -185,7 +190,7 @@ Error codes: `AUTH_FAILED`, `NOT_FOUND`, `PERMISSION_DENIED`, `RATE_LIMITED`, `N
 
 | Method                             | Returns                   | Description                                      |
 | ---------------------------------- | ------------------------- | ------------------------------------------------ |
-| `generate(prompt, deviceType?)`    | `Promise<Screen>`         | Generate a screen from a text prompt             |
+| `generate(prompt, options?)`       | `Promise<Screen>`         | Generate a screen (`options.deviceType`, `options.modelId`) |
 | `screens()`                        | `Promise<Screen[]>`       | List all screens in the project                  |
 | `getScreen(screenId)`              | `Promise<Screen>`         | Retrieve a specific screen by ID                 |
 | `uploadImage(filePath, opts?)`     | `Promise<Screen[]>`       | Upload an image file and create a screen from it |

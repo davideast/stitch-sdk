@@ -194,7 +194,7 @@ The raw `toolDefinitions` array and standalone `toolMap` are also exported from 
 For humans writing precise, programmatic scripts. Generated domain facade over `callTool`. Typed parameters, domain objects returned, `StitchError` thrown on failure.
 
 ```typescript
-const project = await stitch.createProject("My App");
+const project = await stitch.createProject({ title: "My App" });
 const screen = await project.generate("A login page");
 const html = await screen.getHtml();
 ```

@@ -30,7 +30,7 @@ import {
   emitNamedInterfaces,
   emitResponseType,
   generateArgsObject,
-  generateParamType,
+  generateMethodParams,
   resolveRef,
 } from "../generate-sdk.js";
 
@@ -348,9 +348,9 @@ describe("emitNamedInterfaces", () => {
   });
 });
 
-// ── generateParamType ───────────────────────────────────────
+// ── generateMethodParams ─────────────────────────────────────
 
-describe("generateParamType", () => {
+describe("generateMethodParams", () => {
   test("uses named type for $ref", () => {
     const tool: any = {
       name: "apply_design_system",
@@ -377,10 +377,105 @@ describe("generateParamType", () => {
       ["SelectedScreenInstance", "SelectedScreenInstance"],
     ]);
     const args = { selectedScreenInstances: { from: "param" as const } };
-    const result = generateParamType(tool, args as any, namedTypes);
-    expect(result).toContain(
-      "selectedScreenInstances: SelectedScreenInstance[]",
-    );
+    const result = generateMethodParams(tool, args as any, namedTypes);
+    expect(result).toEqual([
+      {
+        name: "selectedScreenInstances",
+        type: "SelectedScreenInstance[]",
+        hasQuestionToken: false,
+      },
+    ]);
+  });
+
+  test("required params stay positional, optional params fold into trailing options object (D12)", () => {
+    const tool: any = {
+      name: "generate_screen_from_text",
+      inputSchema: {
+        properties: {
+          prompt: { type: "string" },
+          deviceType: { enum: ["MOBILE", "DESKTOP"] },
+          modelId: { type: "string" },
+        },
+      },
+    };
+    const args = {
+      projectId: { from: "self" as const },
+      prompt: { from: "param" as const },
+      deviceType: { from: "param" as const, optional: true },
+      modelId: { from: "param" as const, optional: true },
+    };
+    const result = generateMethodParams(tool, args as any);
+    expect(result).toEqual([
+      { name: "prompt", type: "string", hasQuestionToken: false },
+      {
+        name: "options",
+        type: '{ deviceType?: "MOBILE" | "DESKTOP"; modelId?: string }',
+        hasQuestionToken: true,
+      },
+    ]);
+  });
+
+  test("no optional params → no options object", () => {
+    const tool: any = {
+      name: "get_screen",
+      inputSchema: { properties: { screenId: { type: "string" } } },
+    };
+    const args = { screenId: { from: "param" as const } };
+    const result = generateMethodParams(tool, args as any);
+    expect(result).toEqual([
+      { name: "screenId", type: "string", hasQuestionToken: false },
+    ]);
+  });
+
+  test("only optional params → single options param", () => {
+    const tool: any = {
+      name: "create_project",
+      inputSchema: { properties: { title: { type: "string" } } },
+    };
+    const args = { title: { from: "param" as const, optional: true } };
+    const result = generateMethodParams(tool, args as any);
+    expect(result).toEqual([
+      {
+        name: "options",
+        type: "{ title?: string }",
+        hasQuestionToken: true,
+      },
+    ]);
+  });
+
+  test("rename applies inside the options object", () => {
+    const tool: any = {
+      name: "x",
+      inputSchema: { properties: { device_type: { type: "string" } } },
+    };
+    const args = {
+      device_type: {
+        from: "param" as const,
+        optional: true,
+        rename: "deviceType",
+      },
+    };
+    const result = generateMethodParams(tool, args as any);
+    expect(result[0].type).toBe("{ deviceType?: string }");
+  });
+
+  test("required param named 'options' alongside optional params throws", () => {
+    const tool: any = {
+      name: "x",
+      inputSchema: {
+        properties: {
+          options: { type: "string" },
+          extra: { type: "string" },
+        },
+      },
+    };
+    const args = {
+      options: { from: "param" as const },
+      extra: { from: "param" as const, optional: true },
+    };
+    expect(() =>
+      generateMethodParams(tool, args as any, undefined, "Test.method"),
+    ).toThrow(/collides/);
   });
 });
 
@@ -434,6 +529,28 @@ describe("generateArgsObject", () => {
       title: { from: "param", rename: "newTitle" },
     });
     expect(result).toContain("title: newTitle");
+  });
+
+  test("optional param → routed through options object (D12)", () => {
+    const result = generateArgsObject({
+      deviceType: { from: "param", optional: true },
+    });
+    expect(result).toContain("deviceType: options?.deviceType");
+  });
+
+  test("optional param with rename → options?.renamed", () => {
+    const result = generateArgsObject({
+      device_type: { from: "param", optional: true, rename: "deviceType" },
+    });
+    expect(result).toContain("device_type: options?.deviceType");
+  });
+
+  test("computed template referencing an optional param → options?.x interpolation", () => {
+    const result = generateArgsObject({
+      revision: { from: "param", optional: true },
+      name: { from: "computed", template: "projects/{projectId}/rev/{revision}" },
+    });
+    expect(result).toContain("${options?.revision}");
   });
 
   test("selfArray → wrapped array", () => {

@@ -296,7 +296,7 @@ describe("DesignSystem Domain Class", () => {
 
       const ds = await project.createDesignSystemFromDesignMd(
         selectedScreenInstance,
-        "DESKTOP",
+        { deviceType: "DESKTOP" },
       );
 
       expect(mockClient.callTool).toHaveBeenCalledWith(

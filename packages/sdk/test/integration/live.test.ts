@@ -74,7 +74,9 @@ runIfKey("Project.uploadImage (E2E)", () => {
     // Create a temp project to upload into (MCP connect needed for createProject)
     await client.connect();
     const sdk = new Stitch(client);
-    const created = await sdk.createProject(`upload-e2e-${Date.now()}`);
+    const created = await sdk.createProject({
+      title: `upload-e2e-${Date.now()}`,
+    });
     project = new Project(client, created.projectId);
     console.log("E2E upload project:", project.projectId);
   }, 30000);

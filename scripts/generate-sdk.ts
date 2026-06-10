@@ -466,25 +466,58 @@ export function emitResponseType(
 }
 
 /**
- * Convert a tool's inputSchema properties to TypeScript param types.
- * Types are derived from the manifest inputSchema, not hardcoded in domain-map.
+ * A method parameter ready for ts-morph's addMethod({ parameters }).
  */
-export function generateParamType(
+export interface MethodParam {
+  name: string;
+  type: string;
+  hasQuestionToken: boolean;
+}
+
+/**
+ * Convert a tool's inputSchema properties to method parameters.
+ * Types are derived from the manifest inputSchema, not hardcoded in domain-map.
+ *
+ * Signature shape (D12): required params are positional, in IR order.
+ * All optional params are collected into a single trailing
+ * `options?: { ... }` object so future fields (onProgress, signal,
+ * new server-side params) can be added without breaking signatures.
+ */
+export function generateMethodParams(
   tool: Tool,
   args: Record<string, ArgSpec>,
   namedTypes?: Map<string, string>,
-): string {
-  const params: string[] = [];
+  bindingLabel?: string,
+): MethodParam[] {
+  const positional: MethodParam[] = [];
+  const optional: { name: string; type: string }[] = [];
   for (const [name, spec] of Object.entries(args)) {
     if (spec.from !== "param") continue;
     const paramName = spec.rename || name;
     const toolProp = tool.inputSchema?.properties?.[name];
     const defs = tool.inputSchema?.$defs;
     const tsType = jsonSchemaToTs(toolProp, defs, namedTypes);
-    const optional = spec.optional ? "?" : "";
-    params.push(`${paramName}${optional}: ${tsType}`);
+    if (spec.optional) {
+      optional.push({ name: paramName, type: tsType });
+    } else {
+      positional.push({ name: paramName, type: tsType, hasQuestionToken: false });
+    }
   }
-  return params.join(", ");
+  if (optional.length > 0) {
+    if (positional.some((p) => p.name === "options")) {
+      throw new Error(
+        `❌ Binding "${bindingLabel}": a required param is named "options", ` +
+          `which collides with the generated options object. ` +
+          `Use "rename" in domain-map.json to rename it.`,
+      );
+    }
+    positional.push({
+      name: "options",
+      type: `{ ${optional.map((o) => `${o.name}?: ${o.type}`).join("; ")} }`,
+      hasQuestionToken: true,
+    });
+  }
+  return positional;
 }
 
 // ── Arg Object Generation ─────────────────────────────────────
@@ -499,7 +532,12 @@ export function generateArgsObject(args: Record<string, ArgSpec>): string {
       entries.push(`${name}: [this.${field}]`);
     } else if (spec.from === "param") {
       const paramName = spec.rename || name;
-      entries.push(name === paramName ? name : `${name}: ${paramName}`);
+      // Optional params live on the trailing options object (D12)
+      if (spec.optional) {
+        entries.push(`${name}: options?.${paramName}`);
+      } else {
+        entries.push(name === paramName ? name : `${name}: ${paramName}`);
+      }
     } else if (spec.from === "computed") {
       const templateStr = spec.template || "";
       const interpolated = templateStr.replace(/\{(\w+)\}/g, (_, key) => {
@@ -507,7 +545,13 @@ export function generateArgsObject(args: Record<string, ArgSpec>): string {
         if (argSpec?.from === "self" || argSpec?.from === "selfArray")
           return `\${this.${key}}`;
         if (!argSpec) return `\${this.${key}}`; // Assume it's a field on the class if not in args
-        return `\${${argSpec?.from === "param" && argSpec?.rename ? argSpec.rename : key}}`;
+        if (argSpec.from === "param") {
+          const paramName = argSpec.rename || key;
+          return argSpec.optional
+            ? `\${options?.${paramName}}`
+            : `\${${paramName}}`;
+        }
+        return `\${${key}}`;
       });
       entries.push(`${name}: \`${interpolated}\``);
     }
@@ -889,7 +933,12 @@ async function main() {
         continue;
       }
 
-      const paramTypes = generateParamType(tool, binding.args, namedTypes);
+      const methodParams = generateMethodParams(
+        tool,
+        binding.args,
+        namedTypes,
+        `${binding.class}.${binding.method}`,
+      );
       const returnTypeStr = binding.returns.class
         ? binding.returns.array
           ? `${binding.returns.class}[]`
@@ -900,33 +949,14 @@ async function main() {
         name: binding.method,
         isAsync: true,
         returnType: `Promise<${returnTypeStr}>`,
+        parameters: methodParams,
         docs: [
           {
             description: `${tool.description?.split("\n")[0].trim() || binding.method}\nTool: ${binding.tool}`,
           },
         ],
-        // Parameters as raw string (ts-morph doesn't easily support "prompt: string, opts?: Enum" inline)
         statements: buildMethodBody(binding, className, domainMap),
       });
-
-      // Add parameters manually (from the paramTypes string) by editing the method
-      const method = cls
-        .getMethods()
-        .find((m) => m.getName() === binding.method);
-      if (method && paramTypes) {
-        // Parse paramTypes string into individual params
-        const paramParts = paramTypes.split(", ").filter(Boolean);
-        for (const part of paramParts) {
-          const match = part.match(/^(\w+)(\?)?:\s*(.+)$/);
-          if (match) {
-            method.addParameter({
-              name: match[1],
-              type: match[3],
-              hasQuestionToken: !!match[2],
-            });
-          }
-        }
-      }
     }
 
     // Factory methods
