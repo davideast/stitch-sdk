@@ -43,6 +43,9 @@ jobs:
       - name: Script Tests (codegen + IR contract)
         run: bun run test:scripts
 
+      - name: Skill/IR Consistency
+        run: bun run check:skills
+
       - name: Run Tests
         run: bun run test
 

@@ -49,6 +49,7 @@ import {
   type ArgSpec,
 } from "./ir-schema.js";
 import type { Tool, ToolSchema } from "./tool-schema.js";
+import { repairToolSchemas } from "../packages/sdk/src/schema-repair.js";
 
 const ROOT_DIR = resolve(import.meta.dir, "..");
 // Env overrides exist so tests can run the REAL pipeline against fixture
@@ -745,6 +746,24 @@ async function main() {
   const domainMapContent = await Bun.file(DOMAIN_MAP_PATH).text();
 
   const manifest: Tool[] = JSON.parse(manifestContent);
+
+  // The manifest stores schemas RAW as captured. Repair (injecting
+  // missing $defs) happens at LOAD time so codegen sees resolvable
+  // schemas without coupling the captured source of truth to the
+  // repair heuristics. Repairs are recorded in the lock for visibility.
+  const preRepair = new Map(
+    manifest.map((t) => [t.name, JSON.stringify(t)] as const),
+  );
+  repairToolSchemas(manifest as any);
+  const repairedTools = manifest
+    .filter((t) => preRepair.get(t.name) !== JSON.stringify(t))
+    .map((t) => t.name);
+  if (repairedTools.length > 0) {
+    console.log(
+      `🩹 Schema repair applied to: ${repairedTools.join(", ")}`,
+    );
+  }
+
   const domainMap = DomainMap.parse(JSON.parse(domainMapContent));
 
   console.log("🔍 Validating binding IR...");
@@ -1293,6 +1312,9 @@ async function main() {
     manifestHash: `sha256:${manifestHash}`,
     domainMapHash: `sha256:${domainMapHash}`,
     fileCount,
+    // Tools whose schemas needed load-time repair — a server-side schema
+    // fix should make entries disappear from this list (visible as a diff).
+    repairedTools,
   };
   const generatedUnchanged =
     lock.generated &&

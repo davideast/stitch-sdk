@@ -15,7 +15,6 @@
 import { StitchProxyConfig } from "../spec/proxy.js";
 import { buildAuthHeaders } from "../auth.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { repairToolSchemas } from "../schema-repair.js";
 
 /**
  * Shared state for proxy handlers.
@@ -116,15 +115,15 @@ export async function initializeStitchConnection(
 /**
  * Refresh the cached tools list from Stitch.
  *
- * Applies schema repair to inject missing $defs before the tools are
- * re-served to MCP clients whose AJV validators would otherwise crash
- * on unresolved $ref targets.
+ * Stores schemas RAW, exactly as served. Repair (injecting missing
+ * $defs) is a SERVING concern applied where schemas are consumed —
+ * see handlers/listTools.ts — never at capture: the tools-manifest
+ * is the pipeline's source of truth and must not be coupled to the
+ * repair heuristics.
  */
 export async function refreshTools(ctx: ProxyContext): Promise<void> {
   const toolsResult = (await forwardToStitch(ctx.config, "tools/list", {})) as {
     tools: Tool[];
   };
-  const tools = toolsResult.tools || [];
-  repairToolSchemas(tools);
-  ctx.remoteTools = tools;
+  ctx.remoteTools = toolsResult.tools || [];
 }

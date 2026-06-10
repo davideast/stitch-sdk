@@ -16,9 +16,10 @@ import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { ProxyContext } from "../client.js";
 import { refreshTools } from "../client.js";
-import { downloadAssetsTool } from "../virtual-tools.js";
+import { virtualTools } from "../virtual-tools.js";
+import { repairToolSchemas } from "../../schema-repair.js";
 
-const PROXY_VIRTUAL_TOOLS = [downloadAssetsTool].map((t) => ({
+const PROXY_VIRTUAL_TOOLS = virtualTools.map((t) => ({
   name: t.name,
   description: t.description,
   inputSchema: t.inputSchema,
@@ -44,6 +45,11 @@ export function registerListToolsHandler(
         );
       }
     }
-    return { tools: [...ctx.remoteTools, ...PROXY_VIRTUAL_TOOLS] };
+    // ctx.remoteTools holds RAW schemas (capture truth). Repair a copy at
+    // serving time: downstream MCP clients' AJV validators crash on
+    // unresolved $ref targets the backend sometimes omits.
+    const served = structuredClone(ctx.remoteTools);
+    repairToolSchemas(served);
+    return { tools: [...served, ...PROXY_VIRTUAL_TOOLS] };
   });
 }
