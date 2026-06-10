@@ -51,16 +51,21 @@ import {
 import type { Tool, ToolSchema } from "./tool-schema.js";
 
 const ROOT_DIR = resolve(import.meta.dir, "..");
-const MANIFEST_PATH = resolve(
-  ROOT_DIR,
-  "packages/sdk/generated/tools-manifest.json",
-);
-const DOMAIN_MAP_PATH = resolve(
-  ROOT_DIR,
-  "packages/sdk/generated/domain-map.json",
-);
-const GENERATED_DIR = resolve(ROOT_DIR, "packages/sdk/generated/src");
-const LOCK_PATH = resolve(ROOT_DIR, "packages/sdk/generated/stitch-sdk.lock");
+// Env overrides exist so tests can run the REAL pipeline against fixture
+// inputs into a sandbox directory (see scripts/test/codegen-snapshot.test.ts).
+const MANIFEST_PATH =
+  process.env.STITCH_CODEGEN_MANIFEST ??
+  resolve(ROOT_DIR, "packages/sdk/generated/tools-manifest.json");
+const DOMAIN_MAP_PATH =
+  process.env.STITCH_CODEGEN_DOMAIN_MAP ??
+  resolve(ROOT_DIR, "packages/sdk/generated/domain-map.json");
+const GENERATED_DIR =
+  process.env.STITCH_CODEGEN_OUT ??
+  resolve(ROOT_DIR, "packages/sdk/generated/src");
+// When output is sandboxed, the lock is sandboxed alongside it.
+const LOCK_PATH = process.env.STITCH_CODEGEN_OUT
+  ? resolve(process.env.STITCH_CODEGEN_OUT, "..", "stitch-sdk.lock")
+  : resolve(ROOT_DIR, "packages/sdk/generated/stitch-sdk.lock");
 
 function sha256(content: string): string {
   return createHash("sha256").update(content).digest("hex");
