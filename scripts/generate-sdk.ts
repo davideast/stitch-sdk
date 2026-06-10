@@ -386,7 +386,7 @@ function emitFlatMapProjection(
  * `each`/`find` are rejected by the IR schema (no cache semantics).
  */
 export function emitCacheProjection(steps: ProjectionStep[]): string {
-  let code = "this.data";
+  let code = "(this.data as any)";
   for (const step of steps) {
     code += `?.${step.prop}`;
     if (step.index !== undefined) {
@@ -756,7 +756,7 @@ function buildMethodBody(
       `  // writeBack: merge the response into this.data so the next call hits the cache`,
     );
     statements.push(
-      `  if (raw && typeof raw === "object") this.data = { ...this.data, ...raw };`,
+      `  if (raw && typeof raw === "object") this.data = { ...(this.data as object | undefined), ...raw };`,
     );
   }
   const retExpr = generateReturnExpression(binding, className, domainMap);
@@ -1069,7 +1069,10 @@ async function main() {
           hasExclamationToken: true,
         });
       }
-      cls.addProperty({ name: "data", type: "any", scope: Scope.Public });
+      // `unknown`, not `any`: raw response data is untyped at the edge,
+      // and consumers should narrow before use. Load-bearing fields get
+      // typed accessors on the extension classes.
+      cls.addProperty({ name: "data", type: "unknown", scope: Scope.Public });
 
       cls.addConstructor({
         // SEALED (V1_PLAN §3.3): entities are constructed ONLY by the

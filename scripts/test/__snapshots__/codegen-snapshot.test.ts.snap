@@ -68,7 +68,7 @@ export class Gizmo {
     /** Stable identity-map key (minification-safe). */
     static readonly entityKey = "Gizmo";
     public readonly gizmoId!: string;
-    public data: any;
+    public data: unknown;
 
     protected constructor(private client: StitchToolClient, data: any) {
         if (typeof data === "string") {
@@ -89,7 +89,7 @@ export class Gizmo {
      */
     async getUrl(): Promise<string> {
         // Use cached download URL when present
-        if (this.data?.htmlCode?.downloadUrl) return this.data?.htmlCode?.downloadUrl;
+        if ((this.data as any)?.htmlCode?.downloadUrl) return (this.data as any)?.htmlCode?.downloadUrl;
         
         try {
           const raw = await this.client.callTool<GetGizmoAssetResponse>("get_gizmo_asset", { gizmoId: this.gizmoId, name: \`gizmos/\${this.gizmoId}\` });
@@ -142,7 +142,7 @@ export class Widget {
     static readonly entityKey = "Widget";
     public readonly gizmoId!: string;
     public readonly widgetId!: string;
-    public data: any;
+    public data: unknown;
 
     protected constructor(private client: StitchToolClient, data: any) {
         if (typeof data === "string") {

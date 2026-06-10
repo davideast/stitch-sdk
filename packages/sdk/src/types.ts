@@ -18,26 +18,17 @@ export {
   StitchConfigSchema,
 } from "./spec/client.js";
 
+// The REAL response shapes come from the generated types. Handwritten
+// DesignTheme/ScreenInstance duplicates used to live here with shapes
+// INCOMPATIBLE with what the SDK actually returns — deleted in 1.0.
+import type {
+  DesignTheme,
+  ScreenInstance,
+} from "../generated/src/types.generated.js";
+
 export interface ThumbnailScreenshot {
   name: string;
   downloadUrl: string;
-}
-
-export interface DesignTheme {
-  colorMode?: string;
-  font?: string;
-  roundness?: string;
-  customColor?: string;
-  saturation?: number;
-}
-
-export interface ScreenInstance {
-  id: string;
-  sourceScreen: string;
-  width?: number;
-  height?: number;
-  x?: number;
-  y?: number;
 }
 
 export interface ProjectData {
@@ -54,7 +45,3 @@ export interface ProjectData {
   screenInstances?: ScreenInstance[];
 }
 
-export interface GenerateScreenParams {
-  prompt: string;
-  deviceType?: "MOBILE" | "DESKTOP" | "DEVICE_TYPE_UNSPECIFIED";
-}

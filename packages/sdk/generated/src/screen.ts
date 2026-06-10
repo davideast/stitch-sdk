@@ -17,7 +17,7 @@ export class Screen {
     static readonly entityKey = "Screen";
     public readonly projectId!: string;
     public readonly screenId!: string;
-    public data: any;
+    public data: unknown;
 
     protected constructor(protected client: StitchToolClient, data: any) {
         if (typeof data === "string") {
@@ -68,12 +68,12 @@ export class Screen {
      */
     async getHtmlUrl(): Promise<string> {
         // Use cached HTML download URL from generation response if available
-        if (this.data?.htmlCode?.downloadUrl) return this.data?.htmlCode?.downloadUrl;
+        if ((this.data as any)?.htmlCode?.downloadUrl) return (this.data as any)?.htmlCode?.downloadUrl;
         
         try {
           const raw = await this.client.callTool<GetScreenResponse>("get_screen", { projectId: this.projectId, screenId: this.screenId, name: `projects/${this.projectId}/screens/${this.screenId}` });
           // writeBack: merge the response into this.data so the next call hits the cache
-          if (raw && typeof raw === "object") this.data = { ...this.data, ...raw };
+          if (raw && typeof raw === "object") this.data = { ...(this.data as object | undefined), ...raw };
           const _value = raw?.htmlCode?.downloadUrl;
           if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "get_screen response has no htmlCode.downloadUrl for this resource", recoverable: false });
           return _value;
@@ -88,12 +88,12 @@ export class Screen {
      */
     async getImageUrl(): Promise<string> {
         // Use cached screenshot URL from generation response
-        if (this.data?.screenshot?.downloadUrl) return this.data?.screenshot?.downloadUrl;
+        if ((this.data as any)?.screenshot?.downloadUrl) return (this.data as any)?.screenshot?.downloadUrl;
         
         try {
           const raw = await this.client.callTool<GetScreenResponse>("get_screen", { projectId: this.projectId, screenId: this.screenId, name: `projects/${this.projectId}/screens/${this.screenId}` });
           // writeBack: merge the response into this.data so the next call hits the cache
-          if (raw && typeof raw === "object") this.data = { ...this.data, ...raw };
+          if (raw && typeof raw === "object") this.data = { ...(this.data as object | undefined), ...raw };
           const _value = raw?.screenshot?.downloadUrl;
           if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "get_screen response has no screenshot.downloadUrl for this resource", recoverable: false });
           return _value;

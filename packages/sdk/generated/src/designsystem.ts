@@ -18,7 +18,7 @@ export class DesignSystem {
     static readonly entityKey = "DesignSystem";
     public readonly projectId!: string;
     public readonly assetId!: string;
-    public data: any;
+    public data: unknown;
 
     protected constructor(private client: StitchToolClient, data: any) {
         if (typeof data === "string") {

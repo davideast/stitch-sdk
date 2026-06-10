@@ -18,7 +18,7 @@ export class Project {
     /** Stable identity-map key (minification-safe). */
     static readonly entityKey = "Project";
     public readonly projectId!: string;
-    public data: any;
+    public data: unknown;
 
     protected constructor(protected client: StitchToolClient, data: any) {
         if (typeof data === "string") {

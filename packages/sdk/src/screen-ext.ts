@@ -53,6 +53,14 @@ async function fetchArtifact(url: string, what: string): Promise<Response> {
 
 export class Screen extends GeneratedScreen implements ScreenContentSpec {
   /**
+   * Typed accessor for the screen's display title (from cached response
+   * data). `data` itself is `unknown` — narrow it or use accessors.
+   */
+  get title(): string | undefined {
+    return (this.data as any)?.title;
+  }
+
+  /**
    * Fetch the screen's HTML content.
    * For just the download URL, use getHtmlUrl().
    */
