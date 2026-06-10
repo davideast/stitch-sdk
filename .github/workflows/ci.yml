@@ -37,6 +37,12 @@ jobs:
       - name: Type Check
         run: bun run typecheck
 
+      - name: Validate Generated SDK (lock integrity)
+        run: bun run validate:generated
+
+      - name: Script Tests (codegen + IR contract)
+        run: bun run test:scripts
+
       - name: Run Tests
         run: bun run test
 

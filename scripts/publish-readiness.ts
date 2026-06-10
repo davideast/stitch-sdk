@@ -93,6 +93,46 @@ if (pkg.exports) {
   }
 }
 
+// ── 2b. publint (packaging lint) ────────────────────────────────────────────
+console.log("\n🔎 publint");
+check("publint reports no packaging errors", () => {
+  try {
+    execSync("bunx publint", { cwd: SDK_DIR, stdio: "pipe", encoding: "utf8" });
+  } catch (e: any) {
+    assert.fail(
+      `publint failed:\n${e.stdout?.toString() || e.message}`,
+    );
+  }
+});
+
+check("lock validation passes (validate:generated)", () => {
+  try {
+    execSync("bun scripts/validate-generated.ts", {
+      cwd: ROOT_DIR,
+      stdio: "pipe",
+      encoding: "utf8",
+    });
+  } catch (e: any) {
+    assert.fail(
+      `validate-generated failed:\n${e.stdout?.toString() || e.message}`,
+    );
+  }
+});
+
+check("root/sdk versions in sync", () => {
+  try {
+    execSync("bun scripts/sync-versions.ts --check", {
+      cwd: ROOT_DIR,
+      stdio: "pipe",
+      encoding: "utf8",
+    });
+  } catch (e: any) {
+    assert.fail(
+      `version sync check failed:\n${e.stderr?.toString() || e.message}`,
+    );
+  }
+});
+
 // ── 3. Package Metadata ─────────────────────────────────────────────────────
 console.log("\n📋 Package Metadata");
 const requiredFields = [

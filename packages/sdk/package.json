@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/google-labs-code/stitch-sdk.git",
+    "url": "git+https://github.com/google-labs-code/stitch-sdk.git",
     "directory": "packages/sdk"
   },
   "keywords": [
@@ -24,16 +24,16 @@
   "types": "dist/src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/src/index.js",
-      "types": "./dist/src/index.d.ts"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
     },
     "./ai": {
-      "import": "./dist/src/ai.js",
-      "types": "./dist/src/ai.d.ts"
+      "types": "./dist/src/ai.d.ts",
+      "import": "./dist/src/ai.js"
     },
     "./adk": {
-      "import": "./dist/src/adk.js",
-      "types": "./dist/src/adk.d.ts"
+      "types": "./dist/src/adk.d.ts",
+      "import": "./dist/src/adk.js"
     }
   },
   "files": [
@@ -62,6 +62,22 @@
     "cheerio": "^1.0.0-rc.12",
     "zod": "^4.3.5"
   },
+  "peerDependencies": {
+    "@google/adk": "^0.6.1",
+    "@google/genai": "^1.48.0",
+    "ai": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@google/adk": {
+      "optional": true
+    },
+    "@google/genai": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@a2a-js/sdk": "^0.3.13",
     "@google-cloud/storage": "^7.19.0",
@@ -72,9 +88,10 @@
     "@swc/core": "^1.15.18",
     "@types/node": "^20.0.0",
     "ai": "^6.0.116",
-    "lodash-es": "^4.18.1",
-    "sqlite3": "^5.1.7",
     "domhandler": "5.0.3",
+    "lodash-es": "^4.18.1",
+    "publint": "^0.3.0",
+    "sqlite3": "^5.1.7",
     "typescript": "^5.5.0",
     "vitest": "^1.6.0"
   }
