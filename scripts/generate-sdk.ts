@@ -1422,7 +1422,12 @@ async function main() {
     lock.generated.sourceHash === newGenerated.sourceHash &&
     lock.generated.manifestHash === newGenerated.manifestHash &&
     lock.generated.domainMapHash === newGenerated.domainMapHash &&
-    lock.generated.fileCount === newGenerated.fileCount;
+    lock.generated.fileCount === newGenerated.fileCount &&
+    // Include repairedTools so a change in repair behavior (with unchanged
+    // raw inputs) bumps generatedAt and shows as a diff — the lock's stated
+    // drift-signal can't silently no-op.
+    JSON.stringify(lock.generated.repairedTools ?? []) ===
+      JSON.stringify(newGenerated.repairedTools ?? []);
   lock.generated = {
     generatedAt: generatedUnchanged
       ? lock.generated.generatedAt

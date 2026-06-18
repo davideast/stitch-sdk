@@ -134,6 +134,10 @@ export class EntityManager {
     if (this.cache.has(cacheKey)) {
       const instance = this.cache.get(cacheKey);
       if (data && typeof data === "object") {
+        // SHALLOW merge: a refresh carrying a partial nested object (e.g.
+        // { htmlCode: { downloadUrl } } without sibling fields) replaces the
+        // whole nested value. The leaf fields the SDK reads survive on the
+        // common paths; callers needing every nested field should re-read.
         instance.data = { ...instance.data, ...data };
       }
       return instance;

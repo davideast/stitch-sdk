@@ -27,7 +27,9 @@ import { registerCallToolHandler } from "./handlers/callTool.js";
 
 /**
  * A proxy server that forwards MCP requests to Stitch.
- * Bypasses SDK transport layer to handle specific auth and JSON-RPC forwarding.
+ * Runs on the SAME StitchToolClient / MCP SDK transport as the rest of the
+ * SDK (D9 — one MCP stack); it does not bypass the transport or speak
+ * hand-rolled JSON-RPC. It adds Stitch auth + virtual-tool routing on top.
  */
 export class StitchProxy implements StitchProxySpec {
   private config: StitchProxyConfig;

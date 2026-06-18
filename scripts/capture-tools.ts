@@ -95,8 +95,11 @@ async function main() {
     serverUrl: baseUrl,
   };
 
-  // Atomic write of both files: stage to .tmp, then rename. An interrupt
-  // can no longer leave manifest and lock inconsistent with each other.
+  // Stage both files to .tmp, then rename. Each rename is individually
+  // atomic; this is NOT a cross-file transaction, so an interrupt between
+  // the two renames can leave manifest and lock momentarily out of sync —
+  // validate-generated detects that (hash mismatch) and re-running capture
+  // fixes it.
   const lockContent = JSON.stringify(lock, null, 2) + "\n";
   writeFileSync(`${MANIFEST_PATH}.tmp`, manifestContent);
   writeFileSync(`${LOCK_PATH}.tmp`, lockContent);

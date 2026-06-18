@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:cd9aad2c2f7d...)
+        domain-map.json     (sha256:22ffe9a20cc6...)
  */
 import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
@@ -104,7 +104,7 @@ export class Project {
      * Uploads DESIGN.md to a Stitch project. Use this tool when the user wants to create a design system from a DESIGN.md file.
      * Tool: upload_design_md
      */
-    async uploadDesignMd(designMdBase64: string): Promise<any> {
+    async uploadDesignMd(designMdBase64: string): Promise<UploadDesignMdResponse> {
         try {
           const raw = await this.client.callTool<UploadDesignMdResponse>("upload_design_md", { projectId: this.projectId, designMdBase64 });
           return raw;

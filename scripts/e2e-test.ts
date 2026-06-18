@@ -248,15 +248,16 @@ try {
 } catch (err) {
   console.error(`\n💥 Unexpected error: ${err}`);
   if (err instanceof Error) console.error(err.stack);
+  await teardown(); // clean up the e2e project even on failure
   process.exit(1);
 }
 
 // ── Summary ─────────────────────────────────────────────────
 console.log("");
+await teardown(); // always — success or assertion failure
 if (failures > 0) {
   console.error(`💥 ${failures} e2e check(s) failed, ${passed} passed.`);
   process.exit(1);
 } else {
-  await teardown();
   console.log(`✅ All ${passed} e2e checks passed.\n`);
 }

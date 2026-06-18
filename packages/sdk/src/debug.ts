@@ -19,33 +19,32 @@
  * Output goes to stderr so it never corrupts stdout protocols (MCP stdio).
  *
  * Redaction: any key matching /authorization|api[-_]?key|token/i in the
- * `data` payload is replaced with "<redacted>" (top level and one level
- * deep) so auth headers and credentials can never leak into logs.
+ * `data` payload is replaced with "<redacted>" at ANY depth, so a
+ * credential nested inside a headers/config object can never leak.
+ * A depth cap guards against cyclic/pathological payloads.
  */
 
 const SENSITIVE_KEY = /authorization|api[-_]?key|token/i;
+const MAX_REDACT_DEPTH = 8;
 
 function redactObject(value: unknown, depth: number): unknown {
   if (value === null || typeof value !== "object") return value;
+  if (depth >= MAX_REDACT_DEPTH) return "<max-depth>";
   if (Array.isArray(value)) {
-    return depth === 0 ? value.map((v) => redactObject(v, 1)) : value;
+    return value.map((v) => redactObject(v, depth + 1));
   }
   const out: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    if (SENSITIVE_KEY.test(key)) {
-      out[key] = "<redacted>";
-    } else if (depth === 0) {
-      out[key] = redactObject(val, 1);
-    } else {
-      out[key] = val;
-    }
+    // Redact a matching key fully, regardless of nesting depth.
+    out[key] = SENSITIVE_KEY.test(key)
+      ? "<redacted>"
+      : redactObject(val, depth + 1);
   }
   return out;
 }
 
 /**
- * Redact sensitive keys (shallow + one level deep) from a debug payload.
- * Exported for tests.
+ * Redact sensitive keys at any depth from a debug payload. Exported for tests.
  */
 export function redactSensitive(data: unknown): unknown {
   return redactObject(data, 0);

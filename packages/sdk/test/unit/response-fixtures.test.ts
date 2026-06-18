@@ -132,7 +132,9 @@ const BINDING_CASES: Record<string, () => Promise<void>> = {
   "Project.uploadDesignMd": async () => {
     arm("upload_design_md");
     const result = await project().uploadDesignMd("aGVsbG8=");
-    expect(result).toBeTruthy();
+    // Assert the actual projected shape, not just truthiness — the binding
+    // is a direct pass-through of UploadDesignMdResponse.
+    expect(result).toEqual({ success: true });
   },
   "Project.createDesignSystemFromDesignMd": async () => {
     arm("create_design_system_from_design_md");

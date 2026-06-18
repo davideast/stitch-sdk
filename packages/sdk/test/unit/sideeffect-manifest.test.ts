@@ -64,30 +64,47 @@ describe("Side-Effect Manifest Guard", () => {
         "typeof",
         "delete",
       ]);
-      const methodRegex = /^\s+(?:async\s+)?([a-zA-Z]\w*)\s*\(/gm;
-      const extMethods: string[] = [];
+      // Match methods AND getters (`get title()`). Getters were previously
+      // invisible to this guard, so one could silently shadow a generated
+      // binding. We now see them and shadow-check them.
+      const methodRegex = /^\s+(?:async\s+)?(get\s+)?([a-zA-Z]\w*)\s*\(/gm;
+      const extMembers: { name: string; isGetter: boolean }[] = [];
       let match;
       while ((match = methodRegex.exec(extContent)) !== null) {
-        const name = match[1];
-        // Skip constructor, private methods, and language keywords
+        const isGetter = !!match[1];
+        const name = match[2];
         if (
           name === "constructor" ||
           name.startsWith("_") ||
           KEYWORDS.has(name)
         )
           continue;
-        extMethods.push(name);
+        extMembers.push({ name, isGetter });
       }
 
-      // Check each method is declared in sideEffects
       const declaredMethods = new Set(
         (config.sideEffects ?? []).map((se: any) => se.method),
       );
+      // Generated members this class already provides — an extension must
+      // never shadow them (that's the membrane this guard protects).
+      const generatedMembers = new Set<string>([
+        ...domainMap.bindings
+          .filter((b: any) => b.class === className)
+          .map((b: any) => b.method),
+        ...(config.factories ?? []).map((f: any) => f.method),
+        "id",
+      ]);
 
-      for (const method of extMethods) {
-        if (!declaredMethods.has(method)) {
+      for (const { name, isGetter } of extMembers) {
+        if (generatedMembers.has(name)) {
           violations.push(
-            `${className}.${method}() exists in extension but is NOT declared ` +
+            `${className}.${name} in the extension SHADOWS a generated member`,
+          );
+        } else if (!isGetter && !declaredMethods.has(name)) {
+          // Methods must be declared sideEffects; typed-accessor getters
+          // (e.g. `title`) are exempt from declaration but still shadow-checked.
+          violations.push(
+            `${className}.${name}() exists in extension but is NOT declared ` +
               `as a sideEffect in domain-map.json`,
           );
         }

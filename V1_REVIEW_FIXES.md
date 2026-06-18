@@ -115,6 +115,15 @@ All confirmed; the runtime is correct, the docs teach the wrong API. Fix the API
 
 ## Tranche 5 — Minors (batch into one follow-up)
 
+**Status: done in `v1/25` (m15 deferred).**
+- m1 shallow-merge: documented contract (deep-merge not warranted; consumed leaf fields survive).
+- m2 debug redaction now recurses at any depth (depth-capped). m3 close-during-connect re-checks isClosed after the await. m4 invalid baseUrl → StitchError(VALIDATION_ERROR), not a raw TypeError.
+- m5 Generation ctor documented internal-use. m6 uploadDesignMd now returns `Promise<UploadDesignMdResponse>` (domain-map `returns.type`). m7 capture atomicity comment corrected. m8 stale proxy core.ts comment corrected.
+- m9 e2e teardown runs on every exit path. m10 auth.ts no-credentials throw tested. m11 uploadDesignMd fixture asserts the shape. m12 malformed screen (no id/name) skips+warns instead of aborting the batch. m13 unreachable screens now warn. m14 vacuous .gif upload tests replaced with a pre-check test asserting httpPost is never called.
+- m16 sideeffect-manifest guard now sees getters and shadow-checks them (getters exempt from sideEffect declaration). m17 container-proxy dep → ^1.0.0-rc.0. m18 repairedTools included in the lock idempotency comparison.
+- **m15 (DEFERRED):** tool-map `parseParams` nested/$ref handling — low blast radius (best-effort introspection); left for a follow-up.
+
+
 | ID  | Fix | File |
 | --- | --- | --- |
 | m1  | Deep-merge or document shallow merge-on-cache-hit (nested `File` fields dropped) | `entity-manager.ts:137`, generated writeBack |

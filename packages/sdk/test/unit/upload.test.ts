@@ -113,12 +113,12 @@ describe("UploadHandler", () => {
     }
   });
 
-  it("returns UPLOAD_FAILED when httpPost throws a generic server error", async () => {
-    const handler = new UploadHandler(
-      createMockClient({
-        httpPost: vi.fn().mockRejectedValue(new Error("Internal Server Error")),
-      }),
-    );
+  // NOTE: an unsupported extension is rejected BEFORE httpPost is called, so
+  // these assert the extension pre-check, not httpPost error mapping (which
+  // is covered below with supported extensions).
+  it("rejects an unsupported extension (.gif) with UNSUPPORTED_FORMAT, before any httpPost", async () => {
+    const httpPost = vi.fn();
+    const handler = new UploadHandler(createMockClient({ httpPost }));
     const result = await handler.execute("proj-1", {
       filePath: "/tmp/missing.gif",
       createScreenInstances: true,
@@ -127,22 +127,7 @@ describe("UploadHandler", () => {
     if (!result.success) {
       expect(result.error.code).toBe("UNSUPPORTED_FORMAT");
     }
-  });
-
-  it("returns AUTH_FAILED when httpPost throws with 401 in message", async () => {
-    const handler = new UploadHandler(
-      createMockClient({
-        httpPost: vi.fn().mockRejectedValue(new Error("HTTP 401")),
-      }),
-    );
-    const result = await handler.execute("proj-1", {
-      filePath: "/tmp/none.gif",
-      createScreenInstances: true,
-    });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.code).toBe("UNSUPPORTED_FORMAT");
-    }
+    expect(httpPost).not.toHaveBeenCalled(); // short-circuited before the POST
   });
 });
 

@@ -141,7 +141,18 @@ export class DownloadAssetsHandler implements DownloadAssetsSpec {
       const seenSlugs = new Set<string>();
 
       for (const screen of screens) {
-        const screenId = screen.id || screen.name.split("/").pop();
+        // A malformed row (neither id nor name) must skip+warn, not throw —
+        // one bad screen shouldn't abort the whole batch (the spec promises
+        // partial-failure resilience).
+        const screenId =
+          screen.id ||
+          (typeof screen.name === "string"
+            ? screen.name.split("/").pop()
+            : undefined);
+        if (!screenId) {
+          warnings.push("Skipped a screen with no id or name");
+          continue;
+        }
         const screenSlug = slugify(screen.title, screenId, seenSlugs);
 
         const screenDir = path.join(outputDir, screenSlug);
@@ -172,11 +183,18 @@ export class DownloadAssetsHandler implements DownloadAssetsSpec {
             });
             htmlUrl = (raw as any)?.htmlCode?.downloadUrl;
           } catch (error) {
-            // Skip if we can't get full screen details
+            warnings.push(
+              `Skipped ${screenId}: get_screen failed (${error instanceof Error ? error.message : String(error)})`,
+            );
             continue;
           }
         }
-        if (!htmlUrl) continue;
+        if (!htmlUrl) {
+          // Warn rather than silently dropping — otherwise an all-unreachable
+          // project is indistinguishable from an empty one.
+          warnings.push(`Skipped ${screenId}: no HTML download URL available`);
+          continue;
+        }
 
         await fs.mkdir(screenAssetsDir, { recursive: true });
 

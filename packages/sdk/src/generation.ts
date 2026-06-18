@@ -27,6 +27,9 @@
  * order (which is why this is not named `primary`).
  */
 export class Generation<TItem, TRaw = unknown> implements Iterable<TItem> {
+  // Constructed only by generated methods, which throw on an empty response
+  // BEFORE calling this — so `first` is always present in practice. A
+  // consumer who hand-constructs an empty Generation gets `first === undefined`.
   constructor(
     /** Every screen produced by the operation, across all output components. */
     public readonly screens: readonly TItem[],

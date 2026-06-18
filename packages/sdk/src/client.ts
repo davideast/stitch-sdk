@@ -288,15 +288,25 @@ export class StitchToolClient implements StitchToolClientSpec {
 
     debugLog("lifecycle", "connecting", { baseUrl: this.config.baseUrl });
 
+    // Validate baseUrl here so a bad value surfaces as a StitchError, not a
+    // raw TypeError from `new URL()` (e.g. an explicit baseUrl:"" or garbage).
+    let url: URL;
+    try {
+      url = new URL(this.config.baseUrl);
+    } catch {
+      throw new StitchError({
+        code: "VALIDATION_ERROR",
+        message: `Invalid baseUrl: "${this.config.baseUrl}" is not a valid URL.`,
+        recoverable: false,
+      });
+    }
+
     // Create transport with auth headers injected per-instance (no global fetch mutation)
-    this.transport = new StreamableHTTPClientTransport(
-      new URL(this.config.baseUrl),
-      {
-        requestInit: {
-          headers: this.buildAuthHeaders(),
-        },
+    this.transport = new StreamableHTTPClientTransport(url, {
+      requestInit: {
+        headers: this.buildAuthHeaders(),
       },
-    );
+    });
 
     this.transport.onerror = (err) => {
       // debugLog only — the transport error object may embed request info
@@ -308,6 +318,13 @@ export class StitchToolClient implements StitchToolClientSpec {
     };
 
     await this.client.connect(this.transport);
+    // If close() ran while we were awaiting connect, do NOT resurrect a
+    // stale isConnected=true on an already-closed client.
+    if (this.isClosed) {
+      await this.transport.close().catch(() => {});
+      this.transport = null;
+      return;
+    }
     this.isConnected = true;
     debugLog("lifecycle", "connected");
   }
