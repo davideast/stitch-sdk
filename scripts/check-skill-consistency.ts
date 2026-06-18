@@ -138,12 +138,44 @@ check(
   "cache projections reject 'each'",
 );
 
+// ── 4. ALL doc-bearing skills must omit removed/renamed 1.0 API ─────
+// The review found the consistency gate only checked ONE skill; this
+// scans every skill + the README for stale-API tokens that the 1.0
+// surface removed or renamed, so a doc regression of those fails CI.
+// (Compile coverage of the actual API lives in check:examples and
+// check:consumer-types; this catches prose/signature drift.)
+const DOC_FILES = [
+  "../.agents/skills/stitch-sdk-domain-design/SKILL.md",
+  "../.agents/skills/stitch-sdk-usage/SKILL.md",
+  "../.agents/skills/stitch-sdk-development/SKILL.md",
+  "../packages/sdk/README.md",
+].map((p) => resolve(import.meta.dir, p));
+
+// token → why it's banned on the 1.0 surface
+const STALE_API_TOKENS: Record<string, string> = {
+  uploadImage: "renamed to upload()",
+  "stitch.toolMap": "toolMap moved to the @google/stitch-sdk/tools subpath",
+  "result.project?.projectId": "CreateProjectResponse is flat (use name)",
+  // The POSITIONAL form `(prompt, deviceType?, modelId?)` ends in `modelId?)`;
+  // the correct options form ends `modelId? }`, so this discriminates.
+  "modelId?)": "optional params moved into a trailing options object",
+};
+
+console.log("\n🚫 All skills + README omit removed/renamed 1.0 API:");
+for (const file of DOC_FILES) {
+  const text = readFileSync(file, "utf-8");
+  const name = file.split("/").slice(-2).join("/");
+  for (const [token, why] of Object.entries(STALE_API_TOKENS)) {
+    check(!text.includes(token), `${name} omits "${token}" (${why})`);
+  }
+}
+
 console.log("");
 if (failures > 0) {
   console.error(
     `💥 ${failures} consistency check(s) failed. ` +
-      `Update .agents/skills/stitch-sdk-domain-design/SKILL.md to match ir-schema.ts.`,
+      `Update the skill/README docs to match ir-schema.ts and the 1.0 API.`,
   );
   process.exit(1);
 }
-console.log("✅ Skill and IR schema are consistent.");
+console.log("✅ Skills + README consistent with IR schema and the 1.0 API.");

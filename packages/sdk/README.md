@@ -104,11 +104,14 @@ for (const tool of tools) {
 }
 
 // Call a tool directly — returns are now strongly typed!
-import { CreateProjectResponse } from "@google/stitch-sdk";
+import { CreateProjectResponse, parseResourceName } from "@google/stitch-sdk";
 const result = await client.callTool<CreateProjectResponse>("create_project", {
   title: "Agent Project",
 });
-console.log(result.project?.projectId);
+// create_project returns the resource `name` (e.g. "projects/123"); the
+// bare id is the last segment. (The high-level Stitch.createProject() does
+// this for you and returns a Project.)
+console.log(result.name, parseResourceName(result.name ?? ""));
 
 await client.close();
 ```
@@ -157,8 +160,8 @@ A generated UI screen. Provides access to HTML and screenshots.
 
 | Method                                                    | Parameters                                 | Returns             | Description                              |
 | --------------------------------------------------------- | ------------------------------------------ | ------------------- | ---------------------------------------- |
-| `edit(prompt, deviceType?, modelId?)`                     | `prompt: string`                           | `Promise<Screen>`   | Edit the screen with a text prompt       |
-| `variants(prompt, variantOptions, deviceType?, modelId?)` | `prompt: string`, `variantOptions: object` | `Promise<Screen[]>` | Generate design variants                 |
+| `edit(prompt, options?)`                     | `prompt: string`, `options?: { deviceType?, modelId? }`                   | `Promise<Generation<Screen>>` | Edit the screen — `.screens`, `.first`, `.raw` |
+| `variants(prompt, variantOptions, options?)` | `prompt: string`, `variantOptions: VariantOptions`, `options?: { deviceType?, modelId? }` | `Promise<Generation<Screen>>` | Generate design variants                 |
 | `getHtml()`                                               | —                                          | `Promise<string>`     | Fetch the screen's HTML content          |
 | `getImage()`                                              | —                                          | `Promise<Uint8Array>` | Fetch the screenshot bytes               |
 | `getHtmlUrl()` / `getImageUrl()`                          | —                                          | `Promise<string>`     | Signed download URLs (cache-aware)       |

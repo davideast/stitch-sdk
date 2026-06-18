@@ -20,19 +20,9 @@ const screen = (
 ).first;
 console.log(`✅ Screen generated: ${screen.id}`);
 
-// getHtml() returns the HTML content directly (getHtmlUrl() for the URL)
-let html = await screen.getHtml();
-
-if (false) {
-  console.log(`📥 Fetching HTML from ${htmlOrUrl}...`);
-  const response = await fetch(htmlOrUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch HTML: ${response.statusText}`);
-  }
-  html = await response.text();
-} else {
-  console.log(`📥 Using HTML directly (length: ${html.length})`);
-}
+// getHtml() returns the HTML content directly (getHtmlUrl() for the URL).
+const html = await screen.getHtml();
+console.log(`📥 Fetched HTML content (length: ${html.length})`);
 
 // Parse Google Fonts links for Material Symbols
 console.log("\n🔍 Checking for Material Symbols font import...");

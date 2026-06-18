@@ -23,6 +23,7 @@
     "check:skills": "bun scripts/check-skill-consistency.ts",
     "check:bundle": "bun scripts/check-bundle-size.ts",
     "check:consumer-types": "tsc --noEmit -p packages/sdk/tsconfig.consumer.json",
+    "check:examples": "tsc --noEmit -p packages/sdk/tsconfig.examples.json",
     "version:sync": "bun scripts/sync-versions.ts",
     "publish:readiness": "bun scripts/publish-readiness.ts"
   },

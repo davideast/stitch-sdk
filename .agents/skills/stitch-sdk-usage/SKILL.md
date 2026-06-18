@@ -81,13 +81,13 @@ import { stitch } from "@google/stitch-sdk";
 const project = stitch.project("your-project-id");
 
 // Upload a local image file
-const [screen] = await project.uploadImage("./mockup.png", {
+const [screen] = await project.upload("./mockup.png", {
   title: "Home Screen",
 });
 
 console.log(screen.id);
-const html = await screen.getHtml();
-const imageUrl = await screen.getImage();
+const html = await screen.getHtml(); // HTML content
+const png = await screen.getImage(); // screenshot bytes (Uint8Array)
 ```
 
 The method reads the file from disk and posts it directly to the Stitch REST API — no output token constraints apply (unlike agent-driven MCP calls).
@@ -205,30 +205,31 @@ Error codes: `AUTH_FAILED`, `NOT_FOUND`, `PERMISSION_DENIED`, `RATE_LIMITED`, `N
 | `generate(prompt, options?)`       | `Promise<Generation<Screen>>` | Generate screens — `.screens`, `.first`, `.raw` (`options.deviceType`, `options.modelId`) |
 | `screens()`                        | `Promise<Screen[]>`       | List all screens in the project                  |
 | `getScreen(screenId)`              | `Promise<Screen>`         | Retrieve a specific screen by ID                 |
-| `uploadImage(filePath, opts?)`     | `Promise<Screen[]>`       | Upload an image file and create a screen from it |
+| `upload(filePath, opts?)`          | `Promise<Screen[]>`       | Upload an image/HTML file and create screen(s) from it |
 | `createDesignSystem(designSystem)` | `Promise<DesignSystem>`   | Create a design system for this project          |
 | `listDesignSystems()`              | `Promise<DesignSystem[]>` | List all design systems                          |
 | `designSystem(id)`                 | `DesignSystem`            | Reference by ID (no API call)                    |
 
 `deviceType`: `"MOBILE"` | `"DESKTOP"` | `"TABLET"` | `"AGNOSTIC"`
 
-`uploadImage` supported formats: `.png` `.jpg` `.jpeg` `.webp`
+`upload` supported formats: `.png` `.jpg` `.jpeg` `.webp` `.html`
 
 ### DesignSystem Class
 
 | Method                           | Returns                 | Description                         |
 | -------------------------------- | ----------------------- | ----------------------------------- |
 | `update(designSystem)`           | `Promise<DesignSystem>` | Update the design system's theme    |
-| `apply(selectedScreenInstances)` | `Promise<Screen[]>`     | Apply this design system to screens |
+| `apply(selectedScreenInstances)` | `Promise<Generation<Screen>>` | Apply this design system to screens (`.screens`) |
 
 ### Screen Class
 
 | Method                                             | Returns             | Description                              |
 | -------------------------------------------------- | ------------------- | ---------------------------------------- |
-| `getHtml()`                                        | `Promise<string>`   | Get the screen's HTML download URL       |
-| `getImage()`                                       | `Promise<string>`   | Get the screen's screenshot download URL |
-| `edit(prompt, deviceType?, modelId?)`              | `Promise<Screen>`   | Edit the screen using a text prompt      |
-| `variants(prompt, options, deviceType?, modelId?)` | `Promise<Screen[]>` | Generate variants of the screen          |
+| `getHtml()`                                        | `Promise<string>`     | Fetch the screen's HTML content          |
+| `getImage()`                                       | `Promise<Uint8Array>` | Fetch the screenshot bytes               |
+| `getHtmlUrl()` / `getImageUrl()`                   | `Promise<string>`     | Signed download URLs (cache-aware)       |
+| `edit(prompt, options?)`                           | `Promise<Generation<Screen>>` | Edit the screen using a text prompt      |
+| `variants(prompt, variantOptions, options?)`       | `Promise<Generation<Screen>>` | Generate variants of the screen          |
 
 `modelId`: `"GEMINI_3_PRO"` | `"GEMINI_3_FLASH"`
 

@@ -61,6 +61,9 @@ jobs:
       - name: Consumer Type Surface (public API compiles for a strict-TS consumer)
         run: bun run check:consumer-types
 
+      - name: Examples Type-Check (repo examples compile against the built surface)
+        run: bun run check:examples
+
       - name: Publish Readiness (pack + consumer install + subpath imports)
         run: bun run publish:readiness
 

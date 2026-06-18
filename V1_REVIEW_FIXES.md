@@ -18,8 +18,8 @@ Triage of the confirmed findings from the multi-agent adversarial review (44 age
 | M5  | major | `emitFlatMapProjection` bare `[index]` (latent crash) | S | ✅ done (`v1/23`) |
 | M6  | major | Importing `generate-sdk.ts` runs `main()`, regenerates committed tree | S | ✅ done (`v1/24`) |
 | M7  | major | Bundle catalog-leak probe false-passes | S | ✅ done (`v1/24`) |
-| M8  | major | Docs cluster: README/skills/examples teach removed/renamed/0.x API | M | soon |
-| M9  | major | CI gates: Node lane + consumer-types + publish-readiness wired (examples-tsc → Tranche 4 w/ M8; integration-in-CI deferred) | M | ◑ partial (`v1/24`) |
+| M8  | major | Docs cluster: README/skills/examples teach removed/renamed/0.x API | M | ✅ done (`v1/25`) |
+| M9  | major | CI gates: Node lane + consumer-types + examples-tsc + publish-readiness wired (integration-in-CI deferred) | M | ✅ done (`v1/24`,`v1/25`) |
 | m1–m18 | minor | see Tranche 5 | S each | batch |
 
 ---
