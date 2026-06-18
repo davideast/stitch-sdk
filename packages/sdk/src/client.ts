@@ -13,7 +13,10 @@
 // limitations under the License.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  StreamableHTTPClientTransport,
+  StreamableHTTPError,
+} from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import {
@@ -152,6 +155,31 @@ export function computeBackoffMs(
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Normalize an error thrown from the MCP transport into a StitchError.
+ *
+ * A non-OK HTTP response (gateway 429/401/403, etc.) is thrown by the MCP
+ * SDK as StreamableHTTPError BEFORE any JSON-RPC body parsing, so it never
+ * passes through parseToolResult and is neither classified nor retryable.
+ * This maps it by status so RATE_LIMITED retry fires for real 429s and
+ * callers always see a StitchError with `.status`/`.toolName`. Non-HTTP
+ * errors (network/abort/already-StitchError) pass through unchanged.
+ */
+function normalizeTransportError(err: unknown, toolName: string): unknown {
+  if (err instanceof StitchError) return err;
+  if (err instanceof StreamableHTTPError && typeof err.code === "number") {
+    const code = classifyError({ status: err.code });
+    return new StitchError({
+      code,
+      message: `Tool Call Failed [${toolName}]: HTTP ${err.code} — ${err.message}`,
+      recoverable: isRecoverable(code),
+      status: err.code,
+      toolName,
+    });
+  }
+  return err;
+}
 
 /**
  * Authenticated tool pipe for the Stitch MCP Server.
@@ -317,7 +345,10 @@ export class StitchToolClient implements StitchToolClientSpec {
           { timeout: this.config.timeout },
         );
         return this.parseToolResponse<T>(result, name);
-      } catch (err) {
+      } catch (rawErr) {
+        // Normalize transport HTTP errors first, so a real 429 is both
+        // classified and retry-eligible (it never reaches parseToolResult).
+        const err = normalizeTransportError(rawErr, name);
         const isRetryable =
           retry !== null &&
           err instanceof StitchError &&

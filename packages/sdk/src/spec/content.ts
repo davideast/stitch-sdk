@@ -21,6 +21,15 @@
  * remain generated, cache-aware bindings.
  */
 
+/**
+ * The COMPLETE set of members the handwritten Screen extension adds beyond
+ * the generated class. It is both (a) implemented by the screen-ext class
+ * and (b) declaration-merged onto the generated Screen type (via the
+ * domain-map `publicInterface`), so the generated `Screen` type and the
+ * exported `Screen` type are structurally identical — a consumer can assign
+ * `screen.edit().first` / `variants().screens[0]` to a `Screen` without the
+ * type splitting. Anything screen-ext adds publicly MUST be declared here.
+ */
 export interface ScreenContentSpec {
   /**
    * Fetch the screen's HTML content.
@@ -35,4 +44,7 @@ export interface ScreenContentSpec {
    *         NETWORK_ERROR when the signed URL fetch fails.
    */
   getImage(): Promise<Uint8Array>;
+
+  /** Typed accessor for the screen's display title (from cached data). */
+  readonly title: string | undefined;
 }

@@ -26,8 +26,10 @@ import { resolve } from "node:path";
 
 const ROOT_DIR = resolve(import.meta.dir, "..");
 const ENTRY = resolve(ROOT_DIR, "packages/sdk/dist/src/index.js");
-// Root-entry budget. Raise CONSCIOUSLY, in a reviewed diff.
-const BUDGET_KB = 120;
+// Headroom over the real ~31 KB core. The newline-free probe below is the
+// primary leak guard; this budget is only a coarse backstop. Raise
+// CONSCIOUSLY, in a reviewed diff.
+const BUDGET_KB = 80;
 
 const result = await Bun.build({
   entrypoints: [ENTRY],
@@ -46,9 +48,12 @@ const kb = Math.round(bytes / 1024);
 console.log(`📦 Root entry bundle: ${kb} KB (budget ${BUDGET_KB} KB)`);
 
 const text = await result.outputs[0].text();
-// Probe with catalog-ONLY content: the longest tool description exists
-// solely in tool-definitions.ts (tool names/props also appear in
-// generated method bodies, so they are NOT reliable markers).
+
+// Catalog-leak probe: a substring of the longest tool description, which
+// exists ONLY in tool-definitions.ts. It MUST be newline-free — minified
+// output stores a description's "\n" as the escaped two-char "\\n", so a
+// probe spanning a newline can never match (the bug this gate previously
+// shipped: it false-passed on every real leak).
 const manifest = JSON.parse(
   await Bun.file(
     resolve(ROOT_DIR, "packages/sdk/generated/tools-manifest.json"),
@@ -57,8 +62,47 @@ const manifest = JSON.parse(
 const longestDescription: string = manifest
   .map((t: any) => t.description ?? "")
   .sort((a: string, b: string) => b.length - a.length)[0];
-const probe = longestDescription.slice(0, 60);
-if (probe.length >= 30 && text.includes(probe)) {
+const probe = longestDescription
+  .split("\n")
+  .map((l: string) => l.trim())
+  .sort((a: string, b: string) => b.length - a.length)[0]
+  .slice(0, 50);
+
+if (probe.length < 30) {
+  console.error(
+    `❌ Catalog-leak probe too short (${probe.length} chars) to be reliable.`,
+  );
+  process.exit(1);
+}
+
+// Self-validation: the probe MUST match a bundle that genuinely contains
+// the catalog (the /tools subpath). If it doesn't, the probe is broken and
+// the root check below is meaningless — fail loudly rather than false-pass.
+const toolsBundle = await Bun.build({
+  entrypoints: [resolve(ROOT_DIR, "packages/sdk/dist/src/tools.js")],
+  target: "node",
+  minify: true,
+  external: [
+    "@modelcontextprotocol/sdk",
+    "cheerio",
+    "zod",
+    "ai",
+    "@google/adk",
+    "@google/genai",
+  ],
+});
+const toolsText = toolsBundle.success
+  ? await toolsBundle.outputs[0].text()
+  : "";
+if (!toolsText.includes(probe)) {
+  console.error(
+    "❌ Catalog-leak probe did not match the /tools bundle (which DOES " +
+      "contain the catalog). The probe is broken — fix it before trusting this gate.",
+  );
+  process.exit(1);
+}
+
+if (text.includes(probe)) {
   console.error(
     "❌ tool-definitions JSON detected in the ROOT bundle. " +
       "It must stay behind the /tools, /ai, /adk subpaths.",
@@ -70,4 +114,6 @@ if (kb > BUDGET_KB) {
   console.error(`❌ Root bundle ${kb} KB exceeds budget ${BUDGET_KB} KB.`);
   process.exit(1);
 }
-console.log("✅ Bundle size within budget; tool catalog not in root graph.");
+console.log(
+  "✅ Bundle within budget; catalog-leak probe validated against /tools and absent from root.",
+);

@@ -13,13 +13,13 @@ Triage of the confirmed findings from the multi-agent adversarial review (44 age
 | C2  | critical | Ships as patch over `latest` (version 0.3.5, no tags) | S | ✅ done (`v1/22`) |
 | M1  | major | `screen.edit().first.getHtml()` doesn't type-check (self-ref base Screen) | M | ✅ done (`v1/23`) |
 | M2  | major | `entityCache:false` silently dropped — value-object mode dead | S | ✅ done (`v1/23`) |
-| M3  | major | Transport 429/401/403 bypass retry + classification | M | soon |
+| M3  | major | Transport 429/401/403 bypass retry + classification | M | ✅ done (`v1/24`) |
 | M4  | major | `VariantOptions.aspects` `(union)[]` precedence bug | S | ✅ done (`v1/23`) |
 | M5  | major | `emitFlatMapProjection` bare `[index]` (latent crash) | S | ✅ done (`v1/23`) |
-| M6  | major | Importing `generate-sdk.ts` runs `main()`, regenerates committed tree | S | soon |
-| M7  | major | Bundle catalog-leak probe false-passes | S | soon |
+| M6  | major | Importing `generate-sdk.ts` runs `main()`, regenerates committed tree | S | ✅ done (`v1/24`) |
+| M7  | major | Bundle catalog-leak probe false-passes | S | ✅ done (`v1/24`) |
 | M8  | major | Docs cluster: README/skills/examples teach removed/renamed/0.x API | M | soon |
-| M9  | major | CI gates: Bun-only, examples untyped, publish-readiness + e2e unwired | M | soon |
+| M9  | major | CI gates: Node lane + consumer-types + publish-readiness wired (examples-tsc → Tranche 4 w/ M8; integration-in-CI deferred) | M | ◑ partial (`v1/24`) |
 | m1–m18 | minor | see Tranche 5 | S each | batch |
 
 ---

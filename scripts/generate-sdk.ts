@@ -1454,7 +1454,12 @@ async function main() {
   console.log(`\n✅ Stage 3 complete.`);
 }
 
-main().catch((err) => {
-  console.error("❌ Generation failed:", err);
-  process.exit(1);
-});
+// Only run the pipeline when executed as a script — NOT when imported.
+// Importing this module (e.g. from scripts/test) must not rm -rf and
+// regenerate the committed SDK as a side effect [V1_REVIEW_FIXES M6].
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error("❌ Generation failed:", err);
+    process.exit(1);
+  });
+}

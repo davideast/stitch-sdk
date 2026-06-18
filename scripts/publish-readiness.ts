@@ -252,9 +252,14 @@ console.log("\n📐 Pack Size");
 const totalSize = packData[0].unpackedSize;
 const totalKB = Math.round(totalSize / 1024);
 
-check(`pack size is reasonable (${totalKB} KB, limit: 300 KB)`, () => {
+// ~84 KB of that is the generated tool catalog (tool-definitions.js),
+// legitimately shipped behind the /tools subpath; the rest is compiled
+// src + .d.ts. 450 KB leaves headroom for codegen growth while still
+// catching gross bloat (e.g. a dependency accidentally bundled in).
+const PACK_LIMIT_KB = 450;
+check(`pack size is reasonable (${totalKB} KB, limit: ${PACK_LIMIT_KB} KB)`, () => {
   assert(
-    totalSize < 300 * 1024,
+    totalSize < PACK_LIMIT_KB * 1024,
     `Pack is ${totalKB} KB — too large for a library`,
   );
 });
@@ -293,17 +298,36 @@ check("npm pack → install → import works", () => {
     stdio: "pipe",
   });
 
-  // Test import
+  // Test import — root barrel AND every subpath entry. The temp project
+  // installs ONLY the tarball (no optional peers), so /tools must work
+  // peer-free and /ai must throw a clean, actionable error (not a bare
+  // ERR_MODULE_NOT_FOUND) when `ai` is absent.
   const testScript = `
-    import { stitch, Stitch, Project, Screen, StitchError } from "@google/stitch-sdk";
+    import { stitch, Stitch, Project, Screen, StitchError, Generation } from "@google/stitch-sdk";
+    import { toolDefinitions, toolMap } from "@google/stitch-sdk/tools";
 
-    // Verify exports exist
     if (typeof Stitch !== "function") throw new Error("Stitch class not exported");
     if (typeof Project !== "function") throw new Error("Project class not exported");
     if (typeof Screen !== "function") throw new Error("Screen class not exported");
     if (typeof StitchError !== "function") throw new Error("StitchError class not exported");
+    if (typeof Generation !== "function") throw new Error("Generation class not exported");
 
-    console.log("All exports verified ✓");
+    // /tools subpath: catalog must resolve without any optional peer.
+    if (!Array.isArray(toolDefinitions) || toolDefinitions.length === 0)
+      throw new Error("toolDefinitions not exported from /tools");
+    if (!(toolMap instanceof Map)) throw new Error("toolMap not exported from /tools");
+
+    // /ai without the optional 'ai' peer must throw an actionable error.
+    let threwActionable = false;
+    try {
+      await import("@google/stitch-sdk/ai");
+    } catch (e) {
+      threwActionable = String(e && e.message).includes("npm install ai");
+    }
+    if (!threwActionable)
+      throw new Error("/ai should throw an actionable install error when 'ai' is absent");
+
+    console.log("All exports + subpaths verified ✓");
   `;
 
   writeFileSync(resolve(tempDir, "test.mjs"), testScript);
