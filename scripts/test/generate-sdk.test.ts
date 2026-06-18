@@ -93,7 +93,7 @@ describe("emitProjection", () => {
 describe("emitCacheProjection", () => {
   test("single prop → this.data?.prop", () => {
     const steps: ProjectionStep[] = [{ prop: "htmlCode" }];
-    expect(emitCacheProjection(steps)).toBe("this.data?.htmlCode");
+    expect(emitCacheProjection(steps)).toBe("(this.data as any)?.htmlCode");
   });
 
   test("deep path → this.data?.a?.b?.c", () => {
@@ -102,12 +102,12 @@ describe("emitCacheProjection", () => {
       { prop: "downloadUrl" },
     ];
     expect(emitCacheProjection(steps)).toBe(
-      "this.data?.screenshot?.downloadUrl",
+      "(this.data as any)?.screenshot?.downloadUrl",
     );
   });
 
   test("empty steps → this.data", () => {
-    expect(emitCacheProjection([])).toBe("this.data");
+    expect(emitCacheProjection([])).toBe("(this.data as any)");
   });
 });
 
@@ -699,6 +699,6 @@ describe("emitCacheProjection with index", () => {
   test("index step → this.data?.cards?.[0]?.url", () => {
     expect(
       emitCacheProjection([{ prop: "cards", index: 0 }, { prop: "url" }]),
-    ).toBe("this.data?.cards?.[0]?.url");
+    ).toBe("(this.data as any)?.cards?.[0]?.url");
   });
 });

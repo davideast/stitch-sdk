@@ -48,6 +48,20 @@ export class StitchToolClient {
 }
 `;
 
+// Generated classes depend on the SPEC interface (since v1/19), not the
+// concrete client. The compile check needs this module present and typed
+// so `raw` and entity returns get real types (otherwise everything is
+// implicitly any and the gate is meaningless). Mirrors the inference
+// shape of the real EntityManager.resolve (T inferred from cls.prototype).
+const SPEC_CLIENT_STUB = `
+export interface StitchToolClientSpec {
+  callTool<T>(name: string, args: Record<string, any>): Promise<T>;
+  entities: {
+    resolve<T>(cls: { prototype: T }, keys: string[], data: unknown): T;
+  };
+}
+`;
+
 const ERRORS_STUB = `
 export class StitchError extends Error {
   code: string;
@@ -74,6 +88,7 @@ beforeAll(() => {
   // Stub runtime modules at the relative paths the generated code imports
   mkdirSync(join(sandbox, "src", "spec"), { recursive: true });
   writeFileSync(join(sandbox, "src", "client.ts"), CLIENT_STUB);
+  writeFileSync(join(sandbox, "src", "spec", "client.ts"), SPEC_CLIENT_STUB);
   writeFileSync(join(sandbox, "src", "spec", "errors.ts"), ERRORS_STUB);
   // Generation is real handwritten infra, not schema-dependent — use the
   // actual implementation so behavioral tests exercise the shipped class.
