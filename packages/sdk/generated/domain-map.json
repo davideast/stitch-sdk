@@ -68,6 +68,10 @@
           "specPath": "src/spec/content.ts"
         }
       ],
+      "publicInterface": {
+        "name": "ScreenContentSpec",
+        "importPath": "../../src/spec/content.js"
+      },
       "reference": {
         "keys": [
           "projectId",

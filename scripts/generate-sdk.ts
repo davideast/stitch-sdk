@@ -351,7 +351,10 @@ function emitFlatMapProjection(
       while (i < steps.length && !steps[i].each) {
         innerSteps.push(`?.${steps[i].prop}`);
         if (steps[i].index !== undefined) {
-          innerSteps.push(`[${steps[i].index}]`);
+          // Optional index: guard against a missing intermediate so the
+          // flatMap callback returns undefined (→ [] via `|| []`) instead
+          // of throwing on `undefined[i]`. Matches the simple-chain emitter.
+          innerSteps.push(`?.[${steps[i].index}]`);
         }
         i++;
       }
@@ -369,7 +372,7 @@ function emitFlatMapProjection(
         tempVar = String.fromCharCode(tempVar.charCodeAt(0) + 1);
       }
     } else if (step.index !== undefined) {
-      code += `[${step.index}]`;
+      code += `?.[${step.index}]`;
       i++;
     } else {
       i++;
@@ -434,8 +437,13 @@ export function jsonSchemaToTs(
     case "boolean":
       return "boolean";
     case "array":
-      if (prop.items)
-        return `${jsonSchemaToTs(prop.items, allDefs, namedTypes)}[]`;
+      if (prop.items) {
+        const itemType = jsonSchemaToTs(prop.items, allDefs, namedTypes);
+        // Parenthesize union/intersection item types: `"A" | "B"` must
+        // become `("A" | "B")[]`, not `"A" | "B"[]` (which TS parses as
+        // `"A" | ("B"[])` — the VariantOptions.aspects precedence bug).
+        return /[|&]/.test(itemType) ? `(${itemType})[]` : `${itemType}[]`;
+      }
       return "any[]";
     case "object":
       if (prop.properties) {
@@ -1043,6 +1051,33 @@ async function main() {
       isExported: true,
       docs: [{ description: config.description }],
     });
+
+    // Public-interface merge: an extension class adds handwritten methods
+    // (e.g. Screen.getHtml/getImage) that the EntityManager registry
+    // returns at runtime. Declaration-merge their signatures onto the
+    // generated class TYPE so self-referential returns (edit()/variants()
+    // → Generation<Screen>) expose them to consumers, without a runtime
+    // import cycle. Type-only import + interface merge are both erased.
+    if (config.publicInterface) {
+      sourceFile.addImportDeclaration({
+        moduleSpecifier: config.publicInterface.importPath,
+        namedImports: [
+          { name: config.publicInterface.name, isTypeOnly: true },
+        ],
+      });
+      sourceFile.addInterface({
+        name: className,
+        isExported: true,
+        extends: [config.publicInterface.name],
+        docs: [
+          {
+            description:
+              `Declaration-merged so the generated ${className} type includes ` +
+              `the handwritten extension methods provided at runtime.`,
+          },
+        ],
+      });
+    }
 
     // Constructor
     const clientScope = config.extensionPath ? Scope.Protected : Scope.Private;

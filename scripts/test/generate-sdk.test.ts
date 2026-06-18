@@ -702,3 +702,49 @@ describe("emitCacheProjection with index", () => {
     ).toBe("(this.data as any)?.cards?.[0]?.url");
   });
 });
+
+// ── M4: union array item types are parenthesized [V1_REVIEW_FIXES] ──
+
+describe("jsonSchemaToTs array-of-union precedence", () => {
+  test("array of enum → (\"A\" | \"B\")[], not \"A\" | \"B\"[]", () => {
+    const result = jsonSchemaToTs({
+      type: "array",
+      items: { enum: ["LAYOUT", "COLOR_SCHEME", "TEXT_CONTENT"] },
+    });
+    expect(result).toBe('("LAYOUT" | "COLOR_SCHEME" | "TEXT_CONTENT")[]');
+  });
+
+  test("array of plain string is NOT over-parenthesized", () => {
+    expect(jsonSchemaToTs({ type: "array", items: { type: "string" } })).toBe(
+      "string[]",
+    );
+  });
+});
+
+// ── M5: flatMap index emission is optional-guarded [V1_REVIEW_FIXES] ──
+
+describe("emitFlatMapProjection guards trailing index", () => {
+  test("each + trailing index emits ?.[n] (no bare bracket)", () => {
+    const code = emitProjection([
+      { prop: "outputComponents", each: true },
+      { prop: "design" },
+      { prop: "screens", index: 0 },
+    ]);
+    expect(code).toContain("?.[0]");
+    expect(code).not.toMatch(/screens\[0\]/); // no UNGUARDED bracket
+  });
+
+  test("emitted each+index code returns [] (not throw) on a missing intermediate", () => {
+    const code = emitProjection([
+      { prop: "outputComponents", each: true },
+      { prop: "design" },
+      { prop: "screens", index: 0 },
+    ]);
+    // Strip TS `: any` annotations so the expression is valid JS to eval.
+    const js = code.replace(/:\s*any/g, "");
+    const fn = new Function("raw", `return ${js}`);
+    // design present but screens absent — the old bare [0] threw here.
+    expect(() => fn({ outputComponents: [{ design: {} }] })).not.toThrow();
+    expect(fn({ outputComponents: [{ design: {} }] })).toEqual([]);
+  });
+});

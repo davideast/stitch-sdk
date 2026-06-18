@@ -83,6 +83,7 @@ export function resolveConfigWithEnv(
     baseUrl,
     timeout: input?.timeout,
     retry: input?.retry,
+    entityCache: input?.entityCache,
   };
 }
 

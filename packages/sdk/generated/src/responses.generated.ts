@@ -4,7 +4,7 @@ import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Ty
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:9e19c2134270...)
+        domain-map.json     (sha256:cd9aad2c2f7d...)
  */
 
 /** Response message for create_project. */

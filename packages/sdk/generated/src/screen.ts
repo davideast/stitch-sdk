@@ -3,13 +3,14 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:9e19c2134270...)
+        domain-map.json     (sha256:cd9aad2c2f7d...)
  */
 import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
 import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
 import { EditScreensResponse, GenerateVariantsResponse, GetScreenResponse } from "./responses.generated.js";
+import { type ScreenContentSpec } from "../../src/spec/content.js";
 
 /** A generated UI screen. Provides access to HTML and screenshots. */
 export class Screen {
@@ -101,4 +102,8 @@ export class Screen {
           throw StitchError.fromUnknown(error);
         }
     }
+}
+
+/** Declaration-merged so the generated Screen type includes the handwritten extension methods provided at runtime. */
+export interface Screen extends ScreenContentSpec {
 }

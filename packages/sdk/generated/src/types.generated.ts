@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:9e19c2134270...)
+        domain-map.json     (sha256:cd9aad2c2f7d...)
  */
 
 /** A component style token in a design system. */
@@ -261,7 +261,7 @@ export interface SessionOutputComponent {
 
 /** Configuration options for design variant generation. This message captures all parameters used to generate variants, allowing the configuration to be stored, replayed, or analyzed. */
 export interface VariantOptions {
-  aspects?: "VARIANT_ASPECT_UNSPECIFIED" | "LAYOUT" | "COLOR_SCHEME" | "IMAGES" | "TEXT_FONT" | "TEXT_CONTENT"[];
+  aspects?: ("VARIANT_ASPECT_UNSPECIFIED" | "LAYOUT" | "COLOR_SCHEME" | "IMAGES" | "TEXT_FONT" | "TEXT_CONTENT")[];
   creativeRange?: "CREATIVE_RANGE_UNSPECIFIED" | "REFINE" | "EXPLORE" | "REIMAGINE";
   variantCount?: number;
 }

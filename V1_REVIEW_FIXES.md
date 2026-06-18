@@ -11,11 +11,11 @@ Triage of the confirmed findings from the multi-agent adversarial review (44 age
 | --- | --- | --- | --- | --- |
 | C1  | critical | Path traversal: server/downstream `screenId` escapes `outputDir` | M | ✅ done (`v1/22`) |
 | C2  | critical | Ships as patch over `latest` (version 0.3.5, no tags) | S | ✅ done (`v1/22`) |
-| M1  | major | `screen.edit().first.getHtml()` doesn't type-check (self-ref base Screen) | M | **yes** |
-| M2  | major | `entityCache:false` silently dropped — value-object mode dead | S | **yes** |
+| M1  | major | `screen.edit().first.getHtml()` doesn't type-check (self-ref base Screen) | M | ✅ done (`v1/23`) |
+| M2  | major | `entityCache:false` silently dropped — value-object mode dead | S | ✅ done (`v1/23`) |
 | M3  | major | Transport 429/401/403 bypass retry + classification | M | soon |
-| M4  | major | `VariantOptions.aspects` `(union)[]` precedence bug | S | **yes** |
-| M5  | major | `emitFlatMapProjection` bare `[index]` (latent crash) | S | soon |
+| M4  | major | `VariantOptions.aspects` `(union)[]` precedence bug | S | ✅ done (`v1/23`) |
+| M5  | major | `emitFlatMapProjection` bare `[index]` (latent crash) | S | ✅ done (`v1/23`) |
 | M6  | major | Importing `generate-sdk.ts` runs `main()`, regenerates committed tree | S | soon |
 | M7  | major | Bundle catalog-leak probe false-passes | S | soon |
 | M8  | major | Docs cluster: README/skills/examples teach removed/renamed/0.x API | M | soon |

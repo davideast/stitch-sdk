@@ -239,6 +239,21 @@ export const DomainClassConfig = z
      * and the path to its typed service contract.
      */
     sideEffects: z.array(SideEffectSpec).optional(),
+    /**
+     * Declaration-merge a TS interface onto the generated class type so
+     * handwritten extension methods (returned at runtime via the
+     * EntityManager registry) are visible on self-referential returns
+     * (e.g. Screen.edit() → Generation<Screen>). Type-only; no runtime effect.
+     */
+    publicInterface: z
+      .object({
+        /** Exported interface name to extend (e.g. "ScreenContentSpec"). */
+        name: z.string(),
+        /** Module specifier the generated file imports it from (type-only). */
+        importPath: z.string(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type DomainClassConfig = z.infer<typeof DomainClassConfig>;

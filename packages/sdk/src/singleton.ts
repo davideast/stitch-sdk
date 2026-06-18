@@ -24,6 +24,7 @@ export interface SingletonClientConfig {
   baseUrl?: string;
   timeout?: number;
   retry?: StitchConfig["retry"];
+  entityCache?: boolean;
 }
 
 /** Lazily-initialized default client + the resolved config that built it. */
@@ -50,6 +51,7 @@ function resolveAndKey(config?: SingletonClientConfig): {
       baseUrl: config?.baseUrl,
       timeout: config?.timeout,
       retry: config?.retry,
+      entityCache: config?.entityCache,
     }),
   );
   const key = JSON.stringify({
@@ -59,6 +61,7 @@ function resolveAndKey(config?: SingletonClientConfig): {
     baseUrl: resolved.baseUrl,
     timeout: resolved.timeout,
     retry: resolved.retry,
+    entityCache: resolved.entityCache,
   });
   return { resolved, key };
 }
