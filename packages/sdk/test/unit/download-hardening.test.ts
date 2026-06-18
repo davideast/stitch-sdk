@@ -247,3 +247,107 @@ describe("DownloadAssetsHandler hardening", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("DownloadAssetsHandler path traversal (C1)", () => {
+  it("refuses a server-controlled screenId that escapes outputDir (PATH_TRAVERSAL_ATTEMPT, no write)", async () => {
+    const fs = await import("node:fs/promises");
+    vi.mocked(fs.mkdir).mockClear();
+    vi.mocked(fs.writeFile).mockClear();
+
+    // Empty title -> slugify falls back to the raw id, which traverses.
+    const client = clientWithScreens([
+      {
+        id: "../../escaped/PWNED",
+        name: "projects/p1/screens/../../escaped/PWNED",
+        title: "",
+        htmlCode: { downloadUrl: "https://fake/s.html" },
+      },
+    ]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve("<html></html>"),
+      }),
+    );
+
+    const handler = new DownloadAssetsHandler(client);
+    const result = await handler.execute({
+      projectId: "p1",
+      outputDir: "/tmp/out",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("PATH_TRAVERSAL_ATTEMPT");
+    }
+    // The guard returns BEFORE any filesystem write.
+    expect(fs.mkdir).not.toHaveBeenCalled();
+    expect(fs.writeFile).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses a traversing design-system displayName", async () => {
+    // displayName empty -> dsName falls back to ds.name.split("/").pop().
+    // pop() yields the last segment, so the real escape is a trailing "..".
+    const client = {
+      callTool: vi.fn().mockImplementation((tool: string) => {
+        if (tool === "list_screens") return Promise.resolve({ screens: [] });
+        if (tool === "list_design_systems")
+          return Promise.resolve({
+            designSystems: [
+              {
+                name: "assets/..",
+                designSystem: { displayName: "", theme: { designMd: "# x" } },
+              },
+            ],
+          });
+        return Promise.resolve({});
+      }),
+    } as any;
+
+    const handler = new DownloadAssetsHandler(client);
+    const result = await handler.execute({
+      projectId: "p1",
+      outputDir: "/tmp/out",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("PATH_TRAVERSAL_ATTEMPT");
+    }
+  });
+
+  it("allows a legitimate screenId (containment guard does not false-positive)", async () => {
+    const fs = await import("node:fs/promises");
+    vi.mocked(fs.mkdir).mockClear();
+    const client = clientWithScreens([
+      {
+        id: "s-legit",
+        name: "projects/p1/screens/s-legit",
+        title: "Home Page",
+        htmlCode: { downloadUrl: "https://fake/s.html" },
+      },
+    ]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve("<html></html>"),
+      }),
+    );
+
+    const handler = new DownloadAssetsHandler(client);
+    const result = await handler.execute({
+      projectId: "p1",
+      outputDir: "/tmp/out",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.downloadedScreens).toHaveLength(1);
+    }
+    expect(fs.mkdir).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+});

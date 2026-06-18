@@ -27,6 +27,11 @@ bun run check:bundle         # root-entry size budget + catalog-leak probe
 5. Tag `v<version>` on the release commit.
 6. Post-publish smoke: `npm install @google/stitch-sdk@<tag>` in a scratch project; import root, `/tools`, and (with peers installed) `/ai` + `/adk`.
 
+## Dist-tag policy (semver safety)
+
+- **Pre-1.0 / rc:** version is `1.0.0-rc.N` and `publishConfig.tag` is `next`. An rc does NOT satisfy a consumer's `^0.3`/`~0.3` range and `next` is not installed by default, so a breaking pre-release can never auto-upgrade existing `0.x` consumers. This is the current state.
+- **GA:** flip the version to `1.0.0` and `publishConfig.tag` to `latest` ONLY after the open post-review majors land (see `V1_REVIEW_FIXES.md` Tranches 2–4) — several are wrong public types/behavior that are themselves breaking to fix after GA.
+
 ## Invariants the gates enforce
 
 - Generated output is byte-reproducible; `stitch-sdk.lock` hashes are machine-portable and CI-validated.

@@ -29,6 +29,26 @@ import type {
   DownloadedScreenTrace,
 } from "./spec/download.js";
 
+/**
+ * Containment guard — the SECURITY BOUNDARY for downloads.
+ *
+ * `screenId`, screen `title`, and design-system names are all
+ * server-controlled. slugify() makes nice filenames but is NOT a
+ * security control (its fallback returns the raw screenId), so the
+ * handler must verify every target directory resolves to outputDir or
+ * a descendant before writing. Returns true iff `child` is contained.
+ */
+function isWithinOutput(parent: string, child: string): boolean {
+  const rel = path.relative(path.resolve(parent), path.resolve(child));
+  // Contained iff the relative path is "" (same dir) or stays below it.
+  // Reject only a true escape ("..", "../…", or an absolute path) — a dir
+  // merely *named* "..foo" is fine.
+  return (
+    rel === "" ||
+    (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel))
+  );
+}
+
 /** Atomically rename src → dest, falling back to copy+delete on EXDEV. */
 async function atomicRename(src: string, dest: string): Promise<void> {
   try {
@@ -126,6 +146,21 @@ export class DownloadAssetsHandler implements DownloadAssetsSpec {
 
         const screenDir = path.join(outputDir, screenSlug);
         const screenAssetsDir = path.join(screenDir, safeSubdir);
+
+        // SECURITY: a server-controlled screenId/title (e.g. "../../etc")
+        // must never escape outputDir. Fatal, not a per-screen skip — a
+        // traversal attempt signals a compromised or buggy upstream, and
+        // the proxy exposes download_assets to any downstream caller.
+        if (!isWithinOutput(outputDir, screenDir)) {
+          return {
+            success: false,
+            error: {
+              code: "PATH_TRAVERSAL_ATTEMPT",
+              message: `Refusing to write screen "${screenId}" outside the output directory (resolved to "${screenDir}")`,
+              recoverable: false,
+            },
+          };
+        }
 
         let htmlUrl = screen.htmlCode?.downloadUrl;
         if (!htmlUrl) {
@@ -274,6 +309,17 @@ export class DownloadAssetsHandler implements DownloadAssetsSpec {
             : ds.name.split("/").pop();
 
           const dsDir = path.join(outputDir, dsName);
+          // Same boundary as screens: displayName/ds.name are server data.
+          if (!isWithinOutput(outputDir, dsDir)) {
+            return {
+              success: false,
+              error: {
+                code: "PATH_TRAVERSAL_ATTEMPT",
+                message: `Refusing to write design system "${dsName}" outside the output directory`,
+                recoverable: false,
+              },
+            };
+          }
           await fs.mkdir(dsDir, { recursive: true });
 
           const dsPath = path.join(dsDir, "DESIGN.md");
