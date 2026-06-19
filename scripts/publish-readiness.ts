@@ -118,9 +118,7 @@ check("publint reports no packaging errors", () => {
   try {
     execSync("bunx publint", { cwd: SDK_DIR, stdio: "pipe", encoding: "utf8" });
   } catch (e: any) {
-    assert.fail(
-      `publint failed:\n${e.stdout?.toString() || e.message}`,
-    );
+    assert.fail(`publint failed:\n${e.stdout?.toString() || e.message}`);
   }
 });
 
@@ -148,6 +146,33 @@ check("root/sdk versions in sync", () => {
   } catch (e: any) {
     assert.fail(
       `version sync check failed:\n${e.stderr?.toString() || e.message}`,
+    );
+  }
+});
+
+// C2 backstop: catch the exact failure the review flagged — a 1.0 release
+// shipping under a 0.x version or a mismatched dist-tag. (sync-versions only
+// checks root↔sdk parity, not the major or the tag policy.)
+check("version major is >= 1 (1.0 release line)", () => {
+  const major = Number.parseInt(String(pkg.version).split(".")[0], 10);
+  assert(
+    major >= 1,
+    `version ${pkg.version} is pre-1.0 — the 1.0 release line must be >= 1.0.0`,
+  );
+});
+
+check("dist-tag matches release channel (prerelease→next, GA→latest)", () => {
+  const tag = pkg.publishConfig?.tag;
+  const isPrerelease = String(pkg.version).includes("-");
+  if (isPrerelease) {
+    assert(
+      tag && tag !== "latest",
+      `prerelease ${pkg.version} must NOT publish to 'latest' (tag=${tag}); use 'next'`,
+    );
+  } else {
+    assert(
+      tag === "latest",
+      `GA ${pkg.version} should publish to 'latest' (tag=${tag})`,
     );
   }
 });
@@ -257,12 +282,15 @@ const totalKB = Math.round(totalSize / 1024);
 // src + .d.ts. 450 KB leaves headroom for codegen growth while still
 // catching gross bloat (e.g. a dependency accidentally bundled in).
 const PACK_LIMIT_KB = 450;
-check(`pack size is reasonable (${totalKB} KB, limit: ${PACK_LIMIT_KB} KB)`, () => {
-  assert(
-    totalSize < PACK_LIMIT_KB * 1024,
-    `Pack is ${totalKB} KB — too large for a library`,
-  );
-});
+check(
+  `pack size is reasonable (${totalKB} KB, limit: ${PACK_LIMIT_KB} KB)`,
+  () => {
+    assert(
+      totalSize < PACK_LIMIT_KB * 1024,
+      `Pack is ${totalKB} KB — too large for a library`,
+    );
+  },
+);
 
 const fileCount = packFiles.length;
 check(`file count is reasonable (${fileCount} files, limit: 200)`, () => {
@@ -317,15 +345,25 @@ check("npm pack → install → import works", () => {
       throw new Error("toolDefinitions not exported from /tools");
     if (!(toolMap instanceof Map)) throw new Error("toolMap not exported from /tools");
 
-    // /ai without the optional 'ai' peer must throw an actionable error.
-    let threwActionable = false;
+    // /ai and /adk without their optional peers must throw an actionable
+    // error (not a bare ERR_MODULE_NOT_FOUND).
+    let aiActionable = false;
     try {
       await import("@google/stitch-sdk/ai");
     } catch (e) {
-      threwActionable = String(e && e.message).includes("npm install ai");
+      aiActionable = String(e && e.message).includes("npm install ai");
     }
-    if (!threwActionable)
+    if (!aiActionable)
       throw new Error("/ai should throw an actionable install error when 'ai' is absent");
+
+    let adkActionable = false;
+    try {
+      await import("@google/stitch-sdk/adk");
+    } catch (e) {
+      adkActionable = String(e && e.message).includes("npm install @google/adk");
+    }
+    if (!adkActionable)
+      throw new Error("/adk should throw an actionable install error when '@google/adk' is absent");
 
     console.log("All exports + subpaths verified ✓");
   `;

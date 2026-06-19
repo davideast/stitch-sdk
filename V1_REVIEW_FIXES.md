@@ -161,3 +161,20 @@ All confirmed; the runtime is correct, the docs teach the wrong API. Fix the API
 4. `v1/25-docs-and-minors` — M8 docs (after 2 lands) + Tranche 5.
 
 Each branch: full untruncated gate suite (`build`, `test`/`test:coverage`, `test:scripts`, `validate:generated`, `check:skills`, `check:bundle`, `smoke`, `tsc`) — and from now on **never pipe `bun test` through `tail`**.
+
+---
+
+## Re-review outcome (workflow re-run on the fixed state)
+
+A second adversarial workflow verified every original finding is genuinely closed (C1 and M5 via dedicated real-FS repros; a comprehensive agent re-confirmed C1, C2, M1–M9 by running all gates AND injecting deliberate errors to prove the gates catch them). It surfaced **one real regression** the fixes introduced, fixed here on `v1/26`:
+
+- **REGRESSION (major) — close() during in-flight connect() threw a TypeError.** The m3 minor fix dereferenced `this.transport` in the post-await recheck, but `close()` nulls it → `null.close()` synchronous throw the `.catch()` couldn't intercept. Fixed: the recheck now just bails (close already tore down the transport). Added a race regression test (none existed).
+
+Re-review minors addressed on `v1/26`:
+- publicInterface codegen path now has golden-suite coverage (fixture Widget + explicit emit assertions) — the breaking-after-1.0 surface was previously unguarded in the codegen tests.
+- publish-readiness gains a C2 backstop: version major ≥ 1 and dist-tag matches channel (prerelease→next, GA→latest) — the un-gated GA-promotion step.
+- publish-readiness consumer-import now also checks `/adk` (actionable error without the peer).
+- sideeffect-manifest guard now also sees `set` accessors (not just `get`).
+- `.tsbuildinfo` artifacts gitignored + untracked; touched files prettier-formatted.
+
+Deferred (documented, low blast radius): m15 (tool-map nested/$ref params), callToolRaw/listToolsRaw transport-error normalization (deliberate for the proxy verbatim path), integration/e2e adapter round-trips in CI (unit-mocked round-trips DO run), repo-wide prettier drift (CI format gate is warning-only by team choice). GA still requires the manual rc→1.0.0 + next→latest flip (now backstopped by publish-readiness).

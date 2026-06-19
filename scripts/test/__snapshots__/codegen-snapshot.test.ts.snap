@@ -135,6 +135,7 @@ import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
 import { GizmoInput, File, Component } from "./types.generated.js";
 import { SpawnWidgetsResponse } from "./responses.generated.js";
+import { type WidgetExtras } from "../../src/spec/widget-extras.js";
 
 /** A fixture widget belonging to a gizmo. */
 export class Widget {
@@ -171,6 +172,10 @@ export class Widget {
           throw StitchError.fromUnknown(error);
         }
     }
+}
+
+/** Declaration-merged so the generated Widget type includes the handwritten extension methods provided at runtime. */
+export interface Widget extends WidgetExtras {
 }
 "
 `;

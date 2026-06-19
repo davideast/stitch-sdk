@@ -82,7 +82,9 @@ export function resolveConfigWithEnv(
     apiKey: input?.apiKey ?? env("STITCH_API_KEY"),
     accessToken: input?.accessToken ?? env("STITCH_ACCESS_TOKEN"),
     projectId:
-      input?.projectId ?? env("STITCH_PROJECT_ID") ?? env("GOOGLE_CLOUD_PROJECT"),
+      input?.projectId ??
+      env("STITCH_PROJECT_ID") ??
+      env("GOOGLE_CLOUD_PROJECT"),
     baseUrl,
     timeout: input?.timeout,
     retry: input?.retry,
@@ -318,11 +320,12 @@ export class StitchToolClient implements StitchToolClientSpec {
     };
 
     await this.client.connect(this.transport);
-    // If close() ran while we were awaiting connect, do NOT resurrect a
-    // stale isConnected=true on an already-closed client.
+    // If close() ran while we were awaiting connect, it already tore down
+    // (and nulled) the transport — just bail. Do NOT resurrect isConnected,
+    // and do NOT touch this.transport (dereferencing the now-null transport
+    // here threw a TypeError that close()'s teardown was meant to avoid).
     if (this.isClosed) {
-      await this.transport.close().catch(() => {});
-      this.transport = null;
+      this.isConnected = false;
       return;
     }
     this.isConnected = true;

@@ -25,7 +25,14 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  readFileSync,
+  readdirSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -90,14 +97,18 @@ beforeAll(() => {
   writeFileSync(join(sandbox, "src", "client.ts"), CLIENT_STUB);
   writeFileSync(join(sandbox, "src", "spec", "client.ts"), SPEC_CLIENT_STUB);
   writeFileSync(join(sandbox, "src", "spec", "errors.ts"), ERRORS_STUB);
+  // Stub the publicInterface the fixture Widget declaration-merges, so the
+  // golden suite exercises the `export interface X extends Y` emission
+  // (the M1 fix path — otherwise only the real Screen exercises it).
+  writeFileSync(
+    join(sandbox, "src", "spec", "widget-extras.ts"),
+    "export interface WidgetExtras { render(): Promise<string>; }\n",
+  );
   // Generation is real handwritten infra, not schema-dependent — use the
   // actual implementation so behavioral tests exercise the shipped class.
   writeFileSync(
     join(sandbox, "src", "generation.ts"),
-    readFileSync(
-      resolve(ROOT_DIR, "packages/sdk/src/generation.ts"),
-      "utf-8",
-    ),
+    readFileSync(resolve(ROOT_DIR, "packages/sdk/src/generation.ts"), "utf-8"),
   );
 
   const result = Bun.spawnSync(["bun", join(SCRIPTS_DIR, "generate-sdk.ts")], {
@@ -147,9 +158,22 @@ describe("fixture output snapshots", () => {
 
   test("emits exactly the expected file set", () => {
     const files = readdirSync(outDir).sort();
-    expect(files).toEqual(
-      [...EXPECTED_FILES, "tool-definitions.ts"].sort(),
+    expect(files).toEqual([...EXPECTED_FILES, "tool-definitions.ts"].sort());
+  });
+
+  // Explicit guard for the M1 declaration-merge path (publicInterface),
+  // separate from the snapshot so it can't be blindly re-baselined.
+  test("a class with publicInterface declaration-merges it via a type-only import", () => {
+    const src = readFileSync(join(outDir, "widget.ts"), "utf-8");
+    expect(src).toMatch(/export interface Widget extends WidgetExtras/);
+    expect(src).toMatch(
+      /import\s+\{\s+type WidgetExtras\s+\}\s+from\s+"\.\.\/\.\.\/src\/spec\/widget-extras\.js"/,
     );
+  });
+
+  test("a class WITHOUT publicInterface emits no interface merge", () => {
+    const src = readFileSync(join(outDir, "gizmo.ts"), "utf-8");
+    expect(src).not.toMatch(/export interface Gizmo extends/);
   });
 });
 

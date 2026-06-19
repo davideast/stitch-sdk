@@ -238,16 +238,33 @@ describe("StitchToolClient", () => {
 
   // ─── Branch 11: terminal close() ─────────────────────────────────
   describe("terminal close()", () => {
+    it("REGRESSION: close() during an in-flight connect() resolves cleanly (no null-deref TypeError)", async () => {
+      const client = new StitchToolClient({ apiKey: "k" });
+      // Gate the inner MCP connect so doConnect parks on the await.
+      let release!: () => void;
+      const gate = new Promise<void>((r) => (release = r));
+      client["client"].connect = vi.fn().mockImplementation(() => gate);
+
+      const connecting = client.connect();
+      await Promise.resolve(); // let doConnect reach the await
+      await client.close(); // nulls + closes the transport mid-connect
+      release(); // inner connect now resolves; doConnect resumes the recheck
+
+      // Must NOT reject with a TypeError from dereferencing the nulled
+      // transport — it should resolve and leave the client cleanly closed.
+      await expect(connecting).resolves.toBeUndefined();
+      expect(client["isConnected"]).toBe(false);
+      expect(client["isClosed"]).toBe(true);
+    });
+
     it("callTool throws CLIENT_CLOSED after close()", async () => {
       const client = new StitchToolClient({ apiKey: "k" });
       await client.close();
-      await expect(client.callTool("list_projects", {})).rejects.toMatchObject(
-        {
-          code: "CLIENT_CLOSED",
-          recoverable: false,
-          message: expect.stringContaining("create a new StitchToolClient"),
-        },
-      );
+      await expect(client.callTool("list_projects", {})).rejects.toMatchObject({
+        code: "CLIENT_CLOSED",
+        recoverable: false,
+        message: expect.stringContaining("create a new StitchToolClient"),
+      });
     });
 
     it("listTools, httpPost, and connect all throw CLIENT_CLOSED after close()", async () => {

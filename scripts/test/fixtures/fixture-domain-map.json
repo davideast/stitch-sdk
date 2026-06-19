@@ -28,6 +28,10 @@
       "description": "A fixture widget belonging to a gizmo.",
       "constructorParams": ["gizmoId", "widgetId"],
       "parentField": "gizmoId",
+      "publicInterface": {
+        "name": "WidgetExtras",
+        "importPath": "../../src/spec/widget-extras.js"
+      },
       "reference": { "keys": ["gizmoId", "widgetId"] }
     }
   },

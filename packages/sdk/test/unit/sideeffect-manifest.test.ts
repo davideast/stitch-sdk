@@ -64,14 +64,15 @@ describe("Side-Effect Manifest Guard", () => {
         "typeof",
         "delete",
       ]);
-      // Match methods AND getters (`get title()`). Getters were previously
-      // invisible to this guard, so one could silently shadow a generated
-      // binding. We now see them and shadow-check them.
-      const methodRegex = /^\s+(?:async\s+)?(get\s+)?([a-zA-Z]\w*)\s*\(/gm;
-      const extMembers: { name: string; isGetter: boolean }[] = [];
+      // Match methods AND accessors (`get`/`set title()`). Accessors were
+      // previously invisible to this guard, so one could silently shadow a
+      // generated binding. We now see them and shadow-check them.
+      const methodRegex =
+        /^\s+(?:async\s+)?((?:get|set)\s+)?([a-zA-Z]\w*)\s*\(/gm;
+      const extMembers: { name: string; isAccessor: boolean }[] = [];
       let match;
       while ((match = methodRegex.exec(extContent)) !== null) {
-        const isGetter = !!match[1];
+        const isAccessor = !!match[1];
         const name = match[2];
         if (
           name === "constructor" ||
@@ -79,7 +80,7 @@ describe("Side-Effect Manifest Guard", () => {
           KEYWORDS.has(name)
         )
           continue;
-        extMembers.push({ name, isGetter });
+        extMembers.push({ name, isAccessor });
       }
 
       const declaredMethods = new Set(
@@ -95,14 +96,14 @@ describe("Side-Effect Manifest Guard", () => {
         "id",
       ]);
 
-      for (const { name, isGetter } of extMembers) {
+      for (const { name, isAccessor } of extMembers) {
         if (generatedMembers.has(name)) {
           violations.push(
             `${className}.${name} in the extension SHADOWS a generated member`,
           );
-        } else if (!isGetter && !declaredMethods.has(name)) {
+        } else if (!isAccessor && !declaredMethods.has(name)) {
           // Methods must be declared sideEffects; typed-accessor getters
-          // (e.g. `title`) are exempt from declaration but still shadow-checked.
+          // (e.g. `title`) and setters are exempt from declaration but still shadow-checked.
           violations.push(
             `${className}.${name}() exists in extension but is NOT declared ` +
               `as a sideEffect in domain-map.json`,
