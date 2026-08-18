@@ -149,9 +149,7 @@ function getMethodWrapper(
     wrapper = (...args: unknown[]) => {
       const client = getOrCreateClient();
       return (
-        client[prop as keyof StitchToolClient] as (
-          ...a: unknown[]
-        ) => unknown
+        client[prop as keyof StitchToolClient] as (...a: unknown[]) => unknown
       ).apply(client, args);
     };
   } else if (DOMAIN_METHODS.has(prop)) {
@@ -192,9 +190,7 @@ function getPublicValue(prop: string): unknown {
  * await stitch.callTool("create_project", { title: "My App" });
  */
 export const stitch = new Proxy<
-  Stitch &
-    Pick<StitchToolClient, "listTools" | "callTool" | "close"> & {
-    }
+  Stitch & Pick<StitchToolClient, "listTools" | "callTool" | "close"> & {}
 >({} as any, {
   get(_target, prop: string | symbol) {
     // Symbols (inspect hooks, Symbol.toStringTag, then-ability probes...)

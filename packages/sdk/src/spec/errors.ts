@@ -23,6 +23,7 @@ export const StitchErrorCode = z.enum([
   "NOT_FOUND",
   "PERMISSION_DENIED",
   "RATE_LIMITED",
+  "SERVICE_UNAVAILABLE",
   "NETWORK_ERROR",
   "VALIDATION_ERROR",
   "CLIENT_CLOSED",
@@ -43,6 +44,8 @@ export interface StitchErrorData {
   status?: number;
   /** MCP tool name, when the failure came from a tool call. */
   toolName?: string;
+  /** Delay in milliseconds requested by the server before retrying. */
+  retryAfter?: number;
 }
 
 /**
@@ -57,6 +60,8 @@ export class StitchError extends Error {
   public readonly status?: number;
   /** MCP tool name, when the failure came from a tool call. */
   public readonly toolName?: string;
+  /** Delay in milliseconds requested by the server before retrying. */
+  public readonly retryAfter?: number;
 
   constructor(data: StitchErrorData) {
     super(data.message);
@@ -66,6 +71,7 @@ export class StitchError extends Error {
     this.recoverable = data.recoverable;
     this.status = data.status;
     this.toolName = data.toolName;
+    this.retryAfter = data.retryAfter;
   }
 
   /**

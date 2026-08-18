@@ -22,8 +22,8 @@
 
 Gates: publish:readiness 34/34 ✓ validate ✓ build ✓ 323/323 unit ✓ 113/113 scripts ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/test/integration/live.test.ts | 14 ++---
  scripts/e2e-test.ts                        | 35 ++++++++++++-

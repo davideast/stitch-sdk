@@ -2,7 +2,10 @@
   "designSystems": [
     {
       "name": "assets/ds-1",
-      "designSystem": { "displayName": "Brand", "theme": { "designMd": "# Brand" } }
+      "designSystem": {
+        "displayName": "Brand",
+        "theme": { "designMd": "# Brand" }
+      }
     }
   ]
 }

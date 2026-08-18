@@ -57,11 +57,9 @@ describe("Proxy Handlers", () => {
     // route everything through it — no direct fetch/JSON-RPC anywhere.
     const fakeClient: any = {
       callToolRaw: vi.fn(),
-      listToolsRaw: vi
-        .fn()
-        .mockResolvedValue({
-          tools: [{ name: "remote_tool", description: "Remote" }],
-        }),
+      listToolsRaw: vi.fn().mockResolvedValue({
+        tools: [{ name: "remote_tool", description: "Remote" }],
+      }),
       callTool: vi.fn(),
     };
     fakeClient.entities = new EntityManager(fakeClient);

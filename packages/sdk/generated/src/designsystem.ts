@@ -3,61 +3,142 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:22ffe9a20cc6...)
+        domain-map.json     (sha256:d83380431b4d...)
  */
 import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
-import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
-import { UpdateDesignSystemResponse, ApplyDesignSystemResponse } from "./responses.generated.js";
+import {
+  ComponentTokens,
+  DesignTheme,
+  File,
+  ProjectMetadata,
+  ScreenInstance,
+  Typography,
+  UserFeedback,
+  ProjectInput,
+  ScreenInput,
+  Asset,
+  BoundingBox,
+  ComponentRegion,
+  Design,
+  DesignSuggestion,
+  DesignSystemInput,
+  ProgressUpdate,
+  ProgressUpdates,
+  PrototypeLink,
+  PrototypeLinks,
+  PrototypeState,
+  PrototypeV2Spec,
+  Question,
+  QuestionsAsked,
+  ScreenMetadata,
+  SessionEvent,
+  SessionOutputComponent,
+  VariantOptions,
+  SelectedScreenInstance,
+  DesignSystemData,
+} from "./types.generated.js";
+import {
+  UpdateDesignSystemResponse,
+  ApplyDesignSystemResponse,
+} from "./responses.generated.js";
 import { Screen } from "../../src/screen-ext.js";
 
 /** Represents a visual theme or branding applied to projects and screens. */
 export class DesignSystem {
-    /** Stable identity-map key (minification-safe). */
-    static readonly entityKey = "DesignSystem";
-    public readonly projectId!: string;
-    public readonly assetId!: string;
-    public data: unknown;
+  /** Stable identity-map key (minification-safe). */
+  static readonly entityKey = "DesignSystem";
+  public readonly projectId!: string;
+  public readonly assetId!: string;
+  public data?: DesignSystemData;
 
-    protected constructor(private client: StitchToolClientSpec, data: any) {
-        if (typeof data === "string") {
-          throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
-        }
+  /** Typed accessor for the entity's display title. */
+  public get title(): string | undefined {
+    return this.data?.title;
+  }
 
-        this.data = typeof data === "object" ? data : undefined;
+  protected constructor(
+    private client: StitchToolClientSpec,
+    data: any,
+  ) {
+    if (typeof data === "string") {
+      throw new StitchError({
+        code: "VALIDATION_ERROR",
+        message:
+          "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.",
+        recoverable: false,
+      });
     }
 
-    /** Convenience alias for assetId */
-    get id(): string {
-        return this.assetId;
-    }
+    this.data = typeof data === "object" ? data : undefined;
+  }
 
-    /**
-     * Updates a design system for a project. Use this tool when the user wants to change the overall visual theme, style, or branding of the application.
-     * Tool: update_design_system
-     */
-    async update(designSystem: DesignSystemInput): Promise<DesignSystem> {
-        try {
-          const raw = await this.client.callTool<UpdateDesignSystemResponse>("update_design_system", { name: `assets/${this.assetId}`, projectId: this.projectId, designSystem });
-          return this.client.entities.resolve(DesignSystem, ["projectId","assetId"], { ...raw, projectId: this.projectId });
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
-    }
+  /** Convenience alias for assetId */
+  get id(): string {
+    return this.assetId;
+  }
 
-    /**
-     * Applies a design system to a list of screens. Use this tool when the user wants to update one or more screens to match the style of a design system.
-     * Tool: apply_design_system
-     */
-    async apply(selectedScreenInstances: SelectedScreenInstance[]): Promise<Generation<Screen, ApplyDesignSystemResponse>> {
-        try {
-          const raw = await this.client.callTool<ApplyDesignSystemResponse>("apply_design_system", { assetId: this.assetId, projectId: this.projectId, selectedScreenInstances });
-          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
-          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from apply_design_system: no screens in response", recoverable: false });
-          return new Generation(_screens, raw);
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Updates a design system for a project. Use this tool when the user wants to change the overall visual theme, style, or branding of the application.
+   * Tool: update_design_system
+   */
+  async update(designSystem: DesignSystemInput): Promise<DesignSystem> {
+    try {
+      const raw = await this.client.callTool<UpdateDesignSystemResponse>(
+        "update_design_system",
+        {
+          name: `assets/${this.assetId}`,
+          projectId: this.projectId,
+          designSystem,
+        },
+      );
+      return this.client.entities.resolve(
+        DesignSystem,
+        ["projectId", "assetId"],
+        { ...raw, projectId: this.projectId },
+      );
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
+
+  /**
+   * Applies a design system to a list of screens. Use this tool when the user wants to update one or more screens to match the style of a design system.
+   * Tool: apply_design_system
+   */
+  async apply(
+    selectedScreenInstances: SelectedScreenInstance[],
+  ): Promise<Generation<Screen, ApplyDesignSystemResponse>> {
+    try {
+      const raw = await this.client.callTool<ApplyDesignSystemResponse>(
+        "apply_design_system",
+        {
+          assetId: this.assetId,
+          projectId: this.projectId,
+          selectedScreenInstances,
+        },
+      );
+      const _screens = (
+        (raw.outputComponents || []).flatMap(
+          (a: any) => a?.design?.screens || [],
+        ) || []
+      ).map((item) =>
+        this.client.entities.resolve(Screen, ["projectId", "screenId"], {
+          ...item,
+          projectId: this.projectId,
+        }),
+      );
+      if (_screens.length === 0)
+        throw new StitchError({
+          code: "UNKNOWN_ERROR",
+          message:
+            "Incomplete API response from apply_design_system: no screens in response",
+          recoverable: false,
+        });
+      return new Generation(_screens, raw);
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
+    }
+  }
 }

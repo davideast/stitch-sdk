@@ -28,8 +28,8 @@
 
 Gates: validate ✓ build ✓ 212/212 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  scripts/test/fixtures/fixture-domain-map.json      |   4 +-
  scripts/test/generate-sdk.test.ts                  | 125 ++++++++++

@@ -38,6 +38,29 @@ export type EntityClassRef<T> = Function & {
   entityKey?: string;
 };
 
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return typeof val === "object" && val !== null && !Array.isArray(val);
+}
+
+/**
+ * Deep merge utility for plain JSON entity data (V1_PLAN D3/Ticket 3).
+ * Recursively merges plain objects while replacing arrays and primitive leaves.
+ */
+export function mergeEntityData(target: unknown, source: unknown): unknown {
+  if (!isPlainObject(target) || !isPlainObject(source)) {
+    return source;
+  }
+  const result: Record<string, unknown> = { ...target };
+  for (const [key, value] of Object.entries(source)) {
+    if (isPlainObject(value) && isPlainObject(result[key])) {
+      result[key] = mergeEntityData(result[key], value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 export class EntityManager {
   private cache = new Map<string, any>();
   private client: any;
@@ -134,11 +157,7 @@ export class EntityManager {
     if (this.cache.has(cacheKey)) {
       const instance = this.cache.get(cacheKey);
       if (data && typeof data === "object") {
-        // SHALLOW merge: a refresh carrying a partial nested object (e.g.
-        // { htmlCode: { downloadUrl } } without sibling fields) replaces the
-        // whole nested value. The leaf fields the SDK reads survive on the
-        // common paths; callers needing every nested field should re-read.
-        instance.data = { ...instance.data, ...data };
+        instance.data = mergeEntityData(instance.data, data);
       }
       return instance;
     }

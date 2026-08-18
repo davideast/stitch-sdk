@@ -27,6 +27,7 @@ const TEXT_PATTERNS: ReadonlyArray<[RegExp, StitchErrorCode]> = [
   // "rate limit" deliberately has no trailing \b so "rate limited" /
   // "rate limiting" also match; the leading \b still rejects e.g. "crate limit".
   [/\brate limit|\b429\b/, "RATE_LIMITED"],
+  [/\bservice unavailable|\b503\b/, "SERVICE_UNAVAILABLE"],
   [/\bnot found\b|\b404\b/, "NOT_FOUND"],
   // "permission" without trailing \b so "permissions" matches.
   [/\bpermission|\b403\b/, "PERMISSION_DENIED"],
@@ -52,6 +53,8 @@ export function classifyError(input: {
 
   if (status !== undefined) {
     if (status === 429) return "RATE_LIMITED";
+    if (status === 503 || status === 502 || status === 504)
+      return "SERVICE_UNAVAILABLE";
     if (status === 404) return "NOT_FOUND";
     if (status === 403) return "PERMISSION_DENIED";
     if (status === 401) return "AUTH_FAILED";
@@ -76,5 +79,9 @@ export function classifyError(input: {
  * retried idempotent reads — `recoverable` means *you* may retry.
  */
 export function isRecoverable(code: StitchErrorCode): boolean {
-  return code === "RATE_LIMITED" || code === "NETWORK_ERROR";
+  return (
+    code === "RATE_LIMITED" ||
+    code === "SERVICE_UNAVAILABLE" ||
+    code === "NETWORK_ERROR"
+  );
 }

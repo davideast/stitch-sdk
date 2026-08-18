@@ -19,7 +19,7 @@
   NOT_FOUND → PROJECT_NOT_FOUND)
 - Retry (D6 REVISED): StitchConfigSchema gains
   retry: false | { attempts (1-10, default 3), baseMs 250, maxMs 4000 };
-  callTool auto-retries RATE_LIMITED only, for /^(get_|list_)/ tools
+  callTool auto-retries RATE*LIMITED only, for /^(get*|list\_)/ tools
   only — generative/mutating tools never auto-retry (a retried
   generation duplicates minutes of work and quota); full-jitter
   exponential backoff via exported computeBackoffMs(); httpPost has NO
@@ -34,8 +34,8 @@
 
 Gates: validate ✓ check:skills ✓ build ✓ 278/278 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/src/upload-handler.ts           |  19 ++-
  packages/sdk/test/unit/error-mapping.test.ts | 110 ++++++++++++++++

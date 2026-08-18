@@ -20,8 +20,8 @@
 
 Gates: publint ✓ validate ✓ build ✓ 190/190 unit ✓ 81/81 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/src/adk-adapter.ts | 17 +++++++-
  scripts/publish-readiness.ts    | 40 +++++++++++++++++

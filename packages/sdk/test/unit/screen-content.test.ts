@@ -84,7 +84,9 @@ describe("Screen content methods (D2: names promise content)", () => {
       vi.fn().mockResolvedValue({ ok: false, status: 403 }),
     );
 
-    const err = await cachedScreen().getHtml().catch((e: unknown) => e);
+    const err = await cachedScreen()
+      .getHtml()
+      .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(StitchError);
     expect((err as StitchError).code).toBe("NETWORK_ERROR");
     expect((err as StitchError).message).toContain("signed URLs expire");
@@ -95,7 +97,9 @@ describe("Screen content methods (D2: names promise content)", () => {
       "fetch",
       vi.fn().mockResolvedValue({ ok: false, status: 404 }),
     );
-    const err = await cachedScreen().getImage().catch((e: unknown) => e);
+    const err = await cachedScreen()
+      .getImage()
+      .catch((e: unknown) => e);
     expect((err as StitchError).code).toBe("NOT_FOUND");
   });
 

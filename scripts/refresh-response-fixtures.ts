@@ -49,7 +49,10 @@ const screenId = process.argv[3];
 function sanitize(value: any): any {
   const json = JSON.stringify(value)
     .replaceAll(projectId!, "p-fix")
-    .replace(/"downloadUrl":"[^"]+"/g, '"downloadUrl":"https://files.example/sanitized"')
+    .replace(
+      /"downloadUrl":"[^"]+"/g,
+      '"downloadUrl":"https://files.example/sanitized"',
+    )
     .replace(/"sessionId":"[^"]+"/g, '"sessionId":"sess-1"');
   return JSON.parse(json);
 }
@@ -83,4 +86,6 @@ if (screenId) {
   console.log("  - get_screen skipped (pass a screenId to record it)");
 }
 await client.close();
-console.log("✅ Done. Inspect `git diff packages/sdk/test/fixtures/responses`.");
+console.log(
+  "✅ Done. Inspect `git diff packages/sdk/test/fixtures/responses`.",
+);

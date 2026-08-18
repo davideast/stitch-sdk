@@ -14,7 +14,7 @@
   from plan text ('success:false on partial') noted in V1_EXECUTION.md
 - HTML fetch checks r.ok: an expired signed URL's 403 body is no longer
   saved as code.html and counted as success
-- writeAtomic helper unlinks temp files on ANY failure (no .tmp-* strays)
+- writeAtomic helper unlinks temp files on ANY failure (no .tmp-\* strays)
 - asset downloads restricted to https:// URLs
 - extension sanitized through the same allowlist as the basename
 - fs errors (EACCES/ENOSPC/EROFS/EPERM/EEXIST) map to WRITE_FAILED
@@ -25,8 +25,8 @@ Gates: validate ✓ build ✓ 212/212 unit ✓ 81/81 scripts ✓ tsc ✓
 
 STAGE A COMPLETE
 
-
 ## Diffstat
+
 ```
  packages/sdk/src/download-handler.ts              | 128 ++++++++---
  packages/sdk/test/unit/download-hardening.test.ts | 249 ++++++++++++++++++++++

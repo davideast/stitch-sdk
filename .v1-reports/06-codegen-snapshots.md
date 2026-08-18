@@ -6,7 +6,7 @@
 
 ### test(codegen): golden snapshot + compile + behavioral suite over fixture IR [V1_PLAN §1.1]
 
-- generator accepts STITCH_CODEGEN_MANIFEST/_DOMAIN_MAP/_OUT env
+- generator accepts STITCH_CODEGEN_MANIFEST/\_DOMAIN_MAP/\_OUT env
   overrides so tests run the REAL pipeline into a sandbox
 - fixtures exercise every IR feature: self/param/computed/selfArray,
   optional->options object, rename, Record param (old regex-parser
@@ -22,8 +22,8 @@
 
 Gates: validate ✓ build ✓ 212/212 unit ✓ 98/98 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  scripts/test/codegen-snapshot.test.ts              | 329 +++++++++++++++++++++
  scripts/test/fixtures/fixture-domain-map.json      | 118 ++++++++

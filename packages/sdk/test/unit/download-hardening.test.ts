@@ -71,9 +71,10 @@ describe("runWithConcurrency (worker pool)", () => {
     const { failed } = await runWithConcurrency(tasks, 2);
 
     expect(failed).toHaveLength(2);
-    expect(
-      failed.map((f) => (f.error as Error).message).sort(),
-    ).toEqual(["boom-a", "boom-b"]);
+    expect(failed.map((f) => (f.error as Error).message).sort()).toEqual([
+      "boom-a",
+      "boom-b",
+    ]);
     expect(done.sort()).toEqual([1, 3, 5]);
   });
 
@@ -241,9 +242,7 @@ describe("DownloadAssetsHandler hardening", () => {
     if (!result.success) {
       expect(result.error.code).toBe("WRITE_FAILED");
     }
-    expect(fs.unlink).toHaveBeenCalledWith(
-      expect.stringContaining(".tmp-"),
-    );
+    expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining(".tmp-"));
     vi.unstubAllGlobals();
   });
 });

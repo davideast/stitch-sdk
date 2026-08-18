@@ -62,7 +62,9 @@ async function teardown(): Promise<void> {
   if (!e2eProjectId) return;
   try {
     const { tools } = await stitch.listTools();
-    const deleteTool = (tools as any[]).find((t) => /delete.*project/.test(t.name));
+    const deleteTool = (tools as any[]).find((t) =>
+      /delete.*project/.test(t.name),
+    );
     if (!deleteTool) {
       console.log(
         `\n🧹 No delete-project tool on the server yet — project ${e2eProjectId} left behind (e2e-sdk-* naming marks it sweepable).`,
@@ -149,7 +151,10 @@ try {
     `Got image URL (${imageUrl.slice(0, 60)}...)`,
   );
   const imageBytes = await screen.getImage();
-  assert(imageBytes.byteLength > 0, `Got image bytes (${imageBytes.byteLength})`);
+  assert(
+    imageBytes.byteLength > 0,
+    `Got image bytes (${imageBytes.byteLength})`,
+  );
 
   // ── 7. Edit screen ─────────────────────────────────────────
   console.log("\n✏️  Editing screen...");

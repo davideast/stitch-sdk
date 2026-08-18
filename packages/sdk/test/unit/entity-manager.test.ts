@@ -13,7 +13,11 @@
 // limitations under the License.
 
 import { describe, it, expect, vi } from "vitest";
-import { EntityManager, parseAllSegments } from "../../src/entity-manager.js";
+import {
+  EntityManager,
+  parseAllSegments,
+  mergeEntityData,
+} from "../../src/entity-manager.js";
 
 class DummyEntity {
   static readonly entityKey = "DummyEntity";
@@ -145,6 +149,42 @@ describe("EntityManager", () => {
     expect(second).toBe(first);
     expect(first.data.title).toBe("new");
     expect(first.data.extra).toBe(true);
+  });
+
+  it("deep-merges nested plain object data into cached instance without losing sibling fields (Ticket 3)", () => {
+    const manager = new EntityManager({});
+    const refKeys = ["projectId", "id"];
+
+    const first = manager.resolve(DummyEntity, refKeys, {
+      id: "1",
+      projectId: "p1",
+      htmlCode: {
+        downloadUrl: "https://files.example/1.html",
+        expiresAt: 12345,
+      },
+      title: "Login",
+    });
+
+    const second = manager.resolve(DummyEntity, refKeys, {
+      id: "1",
+      projectId: "p1",
+      htmlCode: { downloadUrl: "https://files.example/2.html" },
+    });
+
+    expect(second).toBe(first);
+    expect(first.data.htmlCode.downloadUrl).toBe(
+      "https://files.example/2.html",
+    );
+    expect(first.data.htmlCode.expiresAt).toBe(12345);
+  });
+
+  it("mergeEntityData deeply merges plain objects and replaces arrays/primitives", () => {
+    const target = { a: 1, nested: { x: 10, y: 20 }, arr: [1, 2] };
+    const source = { nested: { x: 99 }, arr: [3] };
+    const result = mergeEntityData(target, source) as typeof target;
+    expect(result.a).toBe(1);
+    expect(result.nested).toEqual({ x: 99, y: 20 });
+    expect(result.arr).toEqual([3]);
   });
 
   it("uses static entityKey (not class.name) so identity survives minification", () => {

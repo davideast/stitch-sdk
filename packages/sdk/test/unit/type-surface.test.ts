@@ -32,10 +32,10 @@ const GEN = resolve(import.meta.dirname, "../../generated/src");
 describe("M1: generated Screen declaration-merges its public interface", () => {
   it("emits `export interface Screen extends ScreenContentSpec` + a type-only import", () => {
     const src = readFileSync(resolve(GEN, "screen.ts"), "utf-8");
+    expect(src).toMatch(/export interface Screen extends ScreenContentSpec/);
     expect(src).toMatch(
-      /export interface Screen extends ScreenContentSpec/,
+      /ScreenContentSpec.*from "\.\.\/\.\.\/src\/spec\/content/,
     );
-    expect(src).toMatch(/ScreenContentSpec.*from "\.\.\/\.\.\/src\/spec\/content/);
   });
 });
 
@@ -52,17 +52,51 @@ describe("M2: entityCache:false reaches the EntityManager via StitchToolClient",
 
   it("default (cache on): same identity → same instance", () => {
     const c = new StitchToolClient({ apiKey: "x", projectId: "p" });
-    const a = c.entities.resolve(Dummy, ["projectId", "id"], { id: "1", projectId: "p1" });
-    const b = c.entities.resolve(Dummy, ["projectId", "id"], { id: "1", projectId: "p1" });
+    const a = c.entities.resolve(Dummy, ["projectId", "id"], {
+      id: "1",
+      projectId: "p1",
+    });
+    const b = c.entities.resolve(Dummy, ["projectId", "id"], {
+      id: "1",
+      projectId: "p1",
+    });
     expect(a).toBe(b);
   });
 
   it("entityCache:false (value-object mode): same identity → distinct instances", () => {
-    const c = new StitchToolClient({ apiKey: "x", projectId: "p", entityCache: false });
-    const a = c.entities.resolve(Dummy, ["projectId", "id"], { id: "1", projectId: "p1" });
-    const b = c.entities.resolve(Dummy, ["projectId", "id"], { id: "1", projectId: "p1" });
+    const c = new StitchToolClient({
+      apiKey: "x",
+      projectId: "p",
+      entityCache: false,
+    });
+    const a = c.entities.resolve(Dummy, ["projectId", "id"], {
+      id: "1",
+      projectId: "p1",
+    });
+    const b = c.entities.resolve(Dummy, ["projectId", "id"], {
+      id: "1",
+      projectId: "p1",
+    });
     expect(a).not.toBe(b);
     // identity still hydrated
     expect(a.projectId).toBe("p1");
+  });
+});
+
+describe("Entity .data interfaces and .title getter deduplication (Ticket 4)", () => {
+  it("emits ProjectData, ScreenData, and DesignSystemData in types.generated.ts", () => {
+    const src = readFileSync(resolve(GEN, "types.generated.ts"), "utf-8");
+    expect(src).toMatch(/export interface ProjectData/);
+    expect(src).toMatch(/export interface ScreenData/);
+    expect(src).toMatch(/export interface DesignSystemData/);
+  });
+
+  it("types public data property on generated classes and emits get title() getter", () => {
+    const screenSrc = readFileSync(resolve(GEN, "screen.ts"), "utf-8");
+    const projectSrc = readFileSync(resolve(GEN, "project.ts"), "utf-8");
+    expect(screenSrc).toMatch(/public data\?: ScreenData;/);
+    expect(screenSrc).toMatch(/get title\(\): string \| undefined/);
+    expect(projectSrc).toMatch(/public data\?: ProjectData;/);
+    expect(projectSrc).toMatch(/get title\(\): string \| undefined/);
   });
 });

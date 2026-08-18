@@ -37,23 +37,23 @@
   at call time) with has/ownKeys/getOwnPropertyDescriptor traps —
   console.log(stitch), Object.keys, and 'in' work without credentials;
   new resetStitchSingleton() export (also from index)
-- STITCH_DEBUG diagnostics: new src/debug.ts debugLog(area, message,
+- STITCH*DEBUG diagnostics: new src/debug.ts debugLog(area, message,
   data?) → stderr as [stitch-sdk:{area}], no-op unless STITCH_DEBUG;
-  keys matching /authorization|api[-_]?key|token/i redacted (top level
-  + one deep). Wired into connect/doConnect/close lifecycle, callTool
-  (tool name + arg KEYS only — never arg values — + retry attempts),
-  and transport.onerror (replaces bare console.error; logs err.message
-  only so embedded request headers can't leak)
+  keys matching /authorization|api[-*]?key|token/i redacted (top level
+  - one deep). Wired into connect/doConnect/close lifecycle, callTool
+    (tool name + arg KEYS only — never arg values — + retry attempts),
+    and transport.onerror (replaces bare console.error; logs err.message
+    only so embedded request headers can't leak)
 - Tests: +36 (314 unit total) — terminal-close matrix, reconnect
   transport-teardown ordering + fresh-Client assertion, env-precedence
   matrix incl. warn-once, singleton lazy/introspection/cache-key/env-
   invalidation suite (vi.stubEnv, no vi.resetModules), debug redaction
-  + silence; proxy tests updated for the aligned refine
+  - silence; proxy tests updated for the aligned refine
 
 Gates: validate ✓ check:skills ✓ build ✓ 314/314 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/test/unit/client.test.ts    | 206 ++++++++++++++++++++++++++++++-
  packages/sdk/test/unit/debug.test.ts     | 105 ++++++++++++++++

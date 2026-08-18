@@ -165,14 +165,11 @@ export const CacheSpec = z
     writeBack: z.boolean().optional(),
   })
   .strict()
-  .refine(
-    (data) => data.projection.every((s) => !s.each && !s.find),
-    {
-      message:
-        "Cache projections support 'prop' and 'index' only — 'each'/'find' " +
-        "have no single-value cache semantics",
-    },
-  );
+  .refine((data) => data.projection.every((s) => !s.each && !s.find), {
+    message:
+      "Cache projections support 'prop' and 'index' only — 'each'/'find' " +
+      "have no single-value cache semantics",
+  });
 export type CacheSpec = z.infer<typeof CacheSpec>;
 
 // ── Factory Spec ──────────────────────────────────────────────

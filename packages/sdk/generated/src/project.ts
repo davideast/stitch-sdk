@@ -3,136 +3,291 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:22ffe9a20cc6...)
+        domain-map.json     (sha256:d83380431b4d...)
  */
 import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
-import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
-import { GenerateScreenFromTextResponse, ListScreensResponse, GetScreenResponse, CreateDesignSystemResponse, ListDesignSystemsResponse, UploadDesignMdResponse, CreateDesignSystemFromDesignMdResponse } from "./responses.generated.js";
+import {
+  ComponentTokens,
+  DesignTheme,
+  File,
+  ProjectMetadata,
+  ScreenInstance,
+  Typography,
+  UserFeedback,
+  ProjectInput,
+  ScreenInput,
+  Asset,
+  BoundingBox,
+  ComponentRegion,
+  Design,
+  DesignSuggestion,
+  DesignSystemInput,
+  ProgressUpdate,
+  ProgressUpdates,
+  PrototypeLink,
+  PrototypeLinks,
+  PrototypeState,
+  PrototypeV2Spec,
+  Question,
+  QuestionsAsked,
+  ScreenMetadata,
+  SessionEvent,
+  SessionOutputComponent,
+  VariantOptions,
+  SelectedScreenInstance,
+  ProjectData,
+} from "./types.generated.js";
+import {
+  GenerateScreenFromTextResponse,
+  ListScreensResponse,
+  GetScreenResponse,
+  CreateDesignSystemResponse,
+  ListDesignSystemsResponse,
+  UploadDesignMdResponse,
+  CreateDesignSystemFromDesignMdResponse,
+} from "./responses.generated.js";
 import { Screen } from "../../src/screen-ext.js";
 import { DesignSystem } from "./designsystem.js";
 
 /** A Stitch project containing screens. */
 export class Project {
-    /** Stable identity-map key (minification-safe). */
-    static readonly entityKey = "Project";
-    public readonly projectId!: string;
-    public data: unknown;
+  /** Stable identity-map key (minification-safe). */
+  static readonly entityKey = "Project";
+  public readonly projectId!: string;
+  public data?: ProjectData;
 
-    protected constructor(protected client: StitchToolClientSpec, data: any) {
-        if (typeof data === "string") {
-          throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
-        }
+  /** Typed accessor for the entity's display title. */
+  public get title(): string | undefined {
+    return this.data?.title;
+  }
 
-        this.data = typeof data === "object" ? data : undefined;
+  protected constructor(
+    protected client: StitchToolClientSpec,
+    data: any,
+  ) {
+    if (typeof data === "string") {
+      throw new StitchError({
+        code: "VALIDATION_ERROR",
+        message:
+          "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.",
+        recoverable: false,
+      });
     }
 
-    /** Convenience alias for projectId */
-    get id(): string {
-        return this.projectId;
-    }
+    this.data = typeof data === "object" ? data : undefined;
+  }
 
-    /**
-     * Generates a new screen within a project from a text prompt.
-     * Tool: generate_screen_from_text
-     */
-    async generate(prompt: string, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Generation<Screen, GenerateScreenFromTextResponse>> {
-        try {
-          const raw = await this.client.callTool<GenerateScreenFromTextResponse>("generate_screen_from_text", { projectId: this.projectId, prompt, deviceType: options?.deviceType ?? "DESKTOP", modelId: options?.modelId });
-          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
-          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from generate_screen_from_text: no screens in response", recoverable: false });
-          return new Generation(_screens, raw);
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
-    }
+  /** Convenience alias for projectId */
+  get id(): string {
+    return this.projectId;
+  }
 
-    /**
-     * Lists all screens within a given Stitch project.
-     * Tool: list_screens
-     */
-    async screens(): Promise<Screen[]> {
-        try {
-          const raw = await this.client.callTool<ListScreensResponse>("list_screens", { projectId: this.projectId });
-          return (raw?.screens || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Generates a new screen within a project from a text prompt.
+   * Tool: generate_screen_from_text
+   */
+  async generate(
+    prompt: string,
+    options?: {
+      deviceType?:
+        | "DEVICE_TYPE_UNSPECIFIED"
+        | "MOBILE"
+        | "DESKTOP"
+        | "TABLET"
+        | "AGNOSTIC";
+      modelId?:
+        | "MODEL_ID_UNSPECIFIED"
+        | "GEMINI_3_PRO"
+        | "GEMINI_3_FLASH"
+        | "GEMINI_3_1_PRO";
+    },
+  ): Promise<Generation<Screen, GenerateScreenFromTextResponse>> {
+    try {
+      const raw = await this.client.callTool<GenerateScreenFromTextResponse>(
+        "generate_screen_from_text",
+        {
+          projectId: this.projectId,
+          prompt,
+          deviceType: options?.deviceType ?? "DESKTOP",
+          modelId: options?.modelId,
+        },
+      );
+      const _screens = (
+        (raw.outputComponents || []).flatMap(
+          (a: any) => a?.design?.screens || [],
+        ) || []
+      ).map((item) =>
+        this.client.entities.resolve(Screen, ["projectId", "screenId"], {
+          ...item,
+          projectId: this.projectId,
+        }),
+      );
+      if (_screens.length === 0)
+        throw new StitchError({
+          code: "UNKNOWN_ERROR",
+          message:
+            "Incomplete API response from generate_screen_from_text: no screens in response",
+          recoverable: false,
+        });
+      return new Generation(_screens, raw);
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /**
-     * Fetch a screen by ID and return its identity-mapped handle.
-     * Tool: get_screen
-     */
-    async getScreen(screenId: string): Promise<Screen> {
-        try {
-          const raw = await this.client.callTool<GetScreenResponse>("get_screen", { projectId: this.projectId, screenId, name: `projects/${this.projectId}/screens/${screenId}` });
-          return this.client.entities.resolve(Screen, ["projectId","screenId"], { ...raw, projectId: this.projectId });
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Lists all screens within a given Stitch project.
+   * Tool: list_screens
+   */
+  async screens(): Promise<Screen[]> {
+    try {
+      const raw = await this.client.callTool<ListScreensResponse>(
+        "list_screens",
+        { projectId: this.projectId },
+      );
+      return (raw?.screens || []).map((item) =>
+        this.client.entities.resolve(Screen, ["projectId", "screenId"], {
+          ...item,
+          projectId: this.projectId,
+        }),
+      );
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /**
-     * Creates a new design system for a project. Use this tool when the user wants to set or update the overall visual theme, style, or branding of the application.
-     * Tool: create_design_system
-     */
-    async createDesignSystem(designSystem: DesignSystemInput): Promise<DesignSystem> {
-        try {
-          const raw = await this.client.callTool<CreateDesignSystemResponse>("create_design_system", { projectId: this.projectId, designSystem });
-          return this.client.entities.resolve(DesignSystem, ["projectId","assetId"], { ...raw, projectId: this.projectId });
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Fetch a screen by ID and return its identity-mapped handle.
+   * Tool: get_screen
+   */
+  async getScreen(screenId: string): Promise<Screen> {
+    try {
+      const raw = await this.client.callTool<GetScreenResponse>("get_screen", {
+        projectId: this.projectId,
+        screenId,
+        name: `projects/${this.projectId}/screens/${screenId}`,
+      });
+      return this.client.entities.resolve(Screen, ["projectId", "screenId"], {
+        ...raw,
+        projectId: this.projectId,
+      });
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /**
-     * Lists all design systems for a given project.
-     * Tool: list_design_systems
-     */
-    async listDesignSystems(): Promise<DesignSystem[]> {
-        try {
-          const raw = await this.client.callTool<ListDesignSystemsResponse>("list_design_systems", { projectId: this.projectId });
-          return (raw?.designSystems || []).map((item) => this.client.entities.resolve(DesignSystem, ["projectId","assetId"], { ...item, projectId: this.projectId }));
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Creates a new design system for a project. Use this tool when the user wants to set or update the overall visual theme, style, or branding of the application.
+   * Tool: create_design_system
+   */
+  async createDesignSystem(
+    designSystem: DesignSystemInput,
+  ): Promise<DesignSystem> {
+    try {
+      const raw = await this.client.callTool<CreateDesignSystemResponse>(
+        "create_design_system",
+        { projectId: this.projectId, designSystem },
+      );
+      return this.client.entities.resolve(
+        DesignSystem,
+        ["projectId", "assetId"],
+        { ...raw, projectId: this.projectId },
+      );
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /**
-     * Uploads DESIGN.md to a Stitch project. Use this tool when the user wants to create a design system from a DESIGN.md file.
-     * Tool: upload_design_md
-     */
-    async uploadDesignMd(designMdBase64: string): Promise<UploadDesignMdResponse> {
-        try {
-          const raw = await this.client.callTool<UploadDesignMdResponse>("upload_design_md", { projectId: this.projectId, designMdBase64 });
-          return raw;
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Lists all design systems for a given project.
+   * Tool: list_design_systems
+   */
+  async listDesignSystems(): Promise<DesignSystem[]> {
+    try {
+      const raw = await this.client.callTool<ListDesignSystemsResponse>(
+        "list_design_systems",
+        { projectId: this.projectId },
+      );
+      return (raw?.designSystems || []).map((item) =>
+        this.client.entities.resolve(DesignSystem, ["projectId", "assetId"], {
+          ...item,
+          projectId: this.projectId,
+        }),
+      );
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /**
-     * Creates a design system for a project, with user uploaded DESIGN.md file, and displays the design system in the UI.
-     * Tool: create_design_system_from_design_md
-     */
-    async createDesignSystemFromDesignMd(selectedScreenInstance: SelectedScreenInstance, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC" }): Promise<DesignSystem> {
-        try {
-          const raw = await this.client.callTool<CreateDesignSystemFromDesignMdResponse>("create_design_system_from_design_md", { projectId: this.projectId, selectedScreenInstance, deviceType: options?.deviceType });
-          return this.client.entities.resolve(DesignSystem, ["projectId","assetId"], { ...raw, projectId: this.projectId });
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Uploads DESIGN.md to a Stitch project. Use this tool when the user wants to create a design system from a DESIGN.md file.
+   * Tool: upload_design_md
+   */
+  async uploadDesignMd(
+    designMdBase64: string,
+  ): Promise<UploadDesignMdResponse> {
+    try {
+      const raw = await this.client.callTool<UploadDesignMdResponse>(
+        "upload_design_md",
+        { projectId: this.projectId, designMdBase64 },
+      );
+      return raw;
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /** Create a DesignSystem handle from an existing ID without an API call. */
-    designSystem(id: string): DesignSystem {
-        return this.client.entities.resolve(DesignSystem, ["projectId","assetId"], { assetId: id, projectId: this.projectId });
+  /**
+   * Creates a design system for a project, with user uploaded DESIGN.md file, and displays the design system in the UI.
+   * Tool: create_design_system_from_design_md
+   */
+  async createDesignSystemFromDesignMd(
+    selectedScreenInstance: SelectedScreenInstance,
+    options?: {
+      deviceType?:
+        | "DEVICE_TYPE_UNSPECIFIED"
+        | "MOBILE"
+        | "DESKTOP"
+        | "TABLET"
+        | "AGNOSTIC";
+    },
+  ): Promise<DesignSystem> {
+    try {
+      const raw =
+        await this.client.callTool<CreateDesignSystemFromDesignMdResponse>(
+          "create_design_system_from_design_md",
+          {
+            projectId: this.projectId,
+            selectedScreenInstance,
+            deviceType: options?.deviceType,
+          },
+        );
+      return this.client.entities.resolve(
+        DesignSystem,
+        ["projectId", "assetId"],
+        { ...raw, projectId: this.projectId },
+      );
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /** Create a Screen handle from an existing ID without an API call. */
-    screen(id: string): Screen {
-        return this.client.entities.resolve(Screen, ["projectId","screenId"], { screenId: id, projectId: this.projectId });
-    }
+  /** Create a DesignSystem handle from an existing ID without an API call. */
+  designSystem(id: string): DesignSystem {
+    return this.client.entities.resolve(
+      DesignSystem,
+      ["projectId", "assetId"],
+      { assetId: id, projectId: this.projectId },
+    );
+  }
+
+  /** Create a Screen handle from an existing ID without an API call. */
+  screen(id: string): Screen {
+    return this.client.entities.resolve(Screen, ["projectId", "screenId"], {
+      screenId: id,
+      projectId: this.projectId,
+    });
+  }
 }

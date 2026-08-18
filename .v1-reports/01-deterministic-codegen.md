@@ -20,8 +20,8 @@
 validate:generated now passes on a clean checkout.
 Gates: validate ✓ idempotency ✓ build ✓ 190/190 unit ✓ 81/81 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  scripts/capture-tools.ts                          | 33 +++++++++----
  scripts/generate-sdk.ts                           | 57 +++++++++++++++++++----

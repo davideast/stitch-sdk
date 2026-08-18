@@ -3,107 +3,257 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:22ffe9a20cc6...)
+        domain-map.json     (sha256:d83380431b4d...)
  */
 import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
 import { Generation } from "../../src/generation.js";
-import { ComponentTokens, DesignTheme, File, ProjectMetadata, ScreenInstance, Typography, UserFeedback, ProjectInput, ScreenInput, Asset, BoundingBox, ComponentRegion, Design, DesignSuggestion, DesignSystemInput, ProgressUpdate, ProgressUpdates, PrototypeLink, PrototypeLinks, PrototypeState, PrototypeV2Spec, Question, QuestionsAsked, ScreenMetadata, SessionEvent, SessionOutputComponent, VariantOptions, SelectedScreenInstance } from "./types.generated.js";
-import { EditScreensResponse, GenerateVariantsResponse, GetScreenResponse } from "./responses.generated.js";
+import {
+  ComponentTokens,
+  DesignTheme,
+  File,
+  ProjectMetadata,
+  ScreenInstance,
+  Typography,
+  UserFeedback,
+  ProjectInput,
+  ScreenInput,
+  Asset,
+  BoundingBox,
+  ComponentRegion,
+  Design,
+  DesignSuggestion,
+  DesignSystemInput,
+  ProgressUpdate,
+  ProgressUpdates,
+  PrototypeLink,
+  PrototypeLinks,
+  PrototypeState,
+  PrototypeV2Spec,
+  Question,
+  QuestionsAsked,
+  ScreenMetadata,
+  SessionEvent,
+  SessionOutputComponent,
+  VariantOptions,
+  SelectedScreenInstance,
+  ScreenData,
+} from "./types.generated.js";
+import {
+  EditScreensResponse,
+  GenerateVariantsResponse,
+  GetScreenResponse,
+} from "./responses.generated.js";
 import { type ScreenContentSpec } from "../../src/spec/content.js";
 
 /** A generated UI screen. Provides access to HTML and screenshots. */
 export class Screen {
-    /** Stable identity-map key (minification-safe). */
-    static readonly entityKey = "Screen";
-    public readonly projectId!: string;
-    public readonly screenId!: string;
-    public data: unknown;
+  /** Stable identity-map key (minification-safe). */
+  static readonly entityKey = "Screen";
+  public readonly projectId!: string;
+  public readonly screenId!: string;
+  public data?: ScreenData;
 
-    protected constructor(protected client: StitchToolClientSpec, data: any) {
-        if (typeof data === "string") {
-          throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });
-        }
+  /** Typed accessor for the entity's display title. */
+  public get title(): string | undefined {
+    return this.data?.title;
+  }
 
-        this.data = typeof data === "object" ? data : undefined;
+  protected constructor(
+    protected client: StitchToolClientSpec,
+    data: any,
+  ) {
+    if (typeof data === "string") {
+      throw new StitchError({
+        code: "VALIDATION_ERROR",
+        message:
+          "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.",
+        recoverable: false,
+      });
     }
 
-    /** Convenience alias for screenId */
-    get id(): string {
-        return this.screenId;
-    }
+    this.data = typeof data === "object" ? data : undefined;
+  }
 
-    /**
-     * Edits existing screens within a project using a text prompt.
-     * Tool: edit_screens
-     */
-    async edit(prompt: string, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Generation<Screen, EditScreensResponse>> {
-        try {
-          const raw = await this.client.callTool<EditScreensResponse>("edit_screens", { projectId: this.projectId, selectedScreenIds: [this.screenId], prompt, deviceType: options?.deviceType, modelId: options?.modelId });
-          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
-          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from edit_screens: no screens in response", recoverable: false });
-          return new Generation(_screens, raw);
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
-    }
+  /** Convenience alias for screenId */
+  get id(): string {
+    return this.screenId;
+  }
 
-    /**
-     * Generates variants of existing screens within a project using a text prompt.
-     * Tool: generate_variants
-     */
-    async variants(prompt: string, variantOptions: VariantOptions, options?: { deviceType?: "DEVICE_TYPE_UNSPECIFIED" | "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC"; modelId?: "MODEL_ID_UNSPECIFIED" | "GEMINI_3_PRO" | "GEMINI_3_FLASH" | "GEMINI_3_1_PRO" }): Promise<Generation<Screen, GenerateVariantsResponse>> {
-        try {
-          const raw = await this.client.callTool<GenerateVariantsResponse>("generate_variants", { projectId: this.projectId, selectedScreenIds: [this.screenId], prompt, variantOptions, deviceType: options?.deviceType, modelId: options?.modelId });
-          const _screens = ((raw.outputComponents || []).flatMap((a: any) => a?.design?.screens || []) || []).map((item) => this.client.entities.resolve(Screen, ["projectId","screenId"], { ...item, projectId: this.projectId }));
-          if (_screens.length === 0) throw new StitchError({ code: "UNKNOWN_ERROR", message: "Incomplete API response from generate_variants: no screens in response", recoverable: false });
-          return new Generation(_screens, raw);
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Edits existing screens within a project using a text prompt.
+   * Tool: edit_screens
+   */
+  async edit(
+    prompt: string,
+    options?: {
+      deviceType?:
+        | "DEVICE_TYPE_UNSPECIFIED"
+        | "MOBILE"
+        | "DESKTOP"
+        | "TABLET"
+        | "AGNOSTIC";
+      modelId?:
+        | "MODEL_ID_UNSPECIFIED"
+        | "GEMINI_3_PRO"
+        | "GEMINI_3_FLASH"
+        | "GEMINI_3_1_PRO";
+    },
+  ): Promise<Generation<Screen, EditScreensResponse>> {
+    try {
+      const raw = await this.client.callTool<EditScreensResponse>(
+        "edit_screens",
+        {
+          projectId: this.projectId,
+          selectedScreenIds: [this.screenId],
+          prompt,
+          deviceType: options?.deviceType,
+          modelId: options?.modelId,
+        },
+      );
+      const _screens = (
+        (raw.outputComponents || []).flatMap(
+          (a: any) => a?.design?.screens || [],
+        ) || []
+      ).map((item) =>
+        this.client.entities.resolve(Screen, ["projectId", "screenId"], {
+          ...item,
+          projectId: this.projectId,
+        }),
+      );
+      if (_screens.length === 0)
+        throw new StitchError({
+          code: "UNKNOWN_ERROR",
+          message:
+            "Incomplete API response from edit_screens: no screens in response",
+          recoverable: false,
+        });
+      return new Generation(_screens, raw);
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /**
-     * Get the signed download URL for this screen's HTML. Cache-aware: served from generation data when present; responses are written back to the cache.
-     * Tool: get_screen
-     */
-    async getHtmlUrl(): Promise<string> {
-        // Use cached HTML download URL from generation response if available
-        if ((this.data as any)?.htmlCode?.downloadUrl) return (this.data as any)?.htmlCode?.downloadUrl;
-        
-        try {
-          const raw = await this.client.callTool<GetScreenResponse>("get_screen", { projectId: this.projectId, screenId: this.screenId, name: `projects/${this.projectId}/screens/${this.screenId}` });
-          // writeBack: merge the response into this.data so the next call hits the cache
-          if (raw && typeof raw === "object") this.data = { ...(this.data as object | undefined), ...raw };
-          const _value = raw?.htmlCode?.downloadUrl;
-          if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "get_screen response has no htmlCode.downloadUrl for this resource", recoverable: false });
-          return _value;
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Generates variants of existing screens within a project using a text prompt.
+   * Tool: generate_variants
+   */
+  async variants(
+    prompt: string,
+    variantOptions: VariantOptions,
+    options?: {
+      deviceType?:
+        | "DEVICE_TYPE_UNSPECIFIED"
+        | "MOBILE"
+        | "DESKTOP"
+        | "TABLET"
+        | "AGNOSTIC";
+      modelId?:
+        | "MODEL_ID_UNSPECIFIED"
+        | "GEMINI_3_PRO"
+        | "GEMINI_3_FLASH"
+        | "GEMINI_3_1_PRO";
+    },
+  ): Promise<Generation<Screen, GenerateVariantsResponse>> {
+    try {
+      const raw = await this.client.callTool<GenerateVariantsResponse>(
+        "generate_variants",
+        {
+          projectId: this.projectId,
+          selectedScreenIds: [this.screenId],
+          prompt,
+          variantOptions,
+          deviceType: options?.deviceType,
+          modelId: options?.modelId,
+        },
+      );
+      const _screens = (
+        (raw.outputComponents || []).flatMap(
+          (a: any) => a?.design?.screens || [],
+        ) || []
+      ).map((item) =>
+        this.client.entities.resolve(Screen, ["projectId", "screenId"], {
+          ...item,
+          projectId: this.projectId,
+        }),
+      );
+      if (_screens.length === 0)
+        throw new StitchError({
+          code: "UNKNOWN_ERROR",
+          message:
+            "Incomplete API response from generate_variants: no screens in response",
+          recoverable: false,
+        });
+      return new Generation(_screens, raw);
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
 
-    /**
-     * Get the signed download URL for this screen's screenshot. Cache-aware: served from generation data when present; responses are written back to the cache.
-     * Tool: get_screen
-     */
-    async getImageUrl(): Promise<string> {
-        // Use cached screenshot URL from generation response
-        if ((this.data as any)?.screenshot?.downloadUrl) return (this.data as any)?.screenshot?.downloadUrl;
-        
-        try {
-          const raw = await this.client.callTool<GetScreenResponse>("get_screen", { projectId: this.projectId, screenId: this.screenId, name: `projects/${this.projectId}/screens/${this.screenId}` });
-          // writeBack: merge the response into this.data so the next call hits the cache
-          if (raw && typeof raw === "object") this.data = { ...(this.data as object | undefined), ...raw };
-          const _value = raw?.screenshot?.downloadUrl;
-          if (_value == null || _value === "") throw new StitchError({ code: "NOT_FOUND", message: "get_screen response has no screenshot.downloadUrl for this resource", recoverable: false });
-          return _value;
-        } catch (error) {
-          throw StitchError.fromUnknown(error);
-        }
+  /**
+   * Get the signed download URL for this screen's HTML. Cache-aware: served from generation data when present; responses are written back to the cache.
+   * Tool: get_screen
+   */
+  async getHtmlUrl(): Promise<string> {
+    // Use cached HTML download URL from generation response if available
+    if ((this.data as any)?.htmlCode?.downloadUrl)
+      return (this.data as any)?.htmlCode?.downloadUrl;
+
+    try {
+      const raw = await this.client.callTool<GetScreenResponse>("get_screen", {
+        projectId: this.projectId,
+        screenId: this.screenId,
+        name: `projects/${this.projectId}/screens/${this.screenId}`,
+      });
+      // writeBack: merge the response into this.data so the next call hits the cache
+      if (raw && typeof raw === "object")
+        this.data = { ...(this.data as object | undefined), ...raw };
+      const _value = raw?.htmlCode?.downloadUrl;
+      if (_value == null || _value === "")
+        throw new StitchError({
+          code: "NOT_FOUND",
+          message:
+            "get_screen response has no htmlCode.downloadUrl for this resource",
+          recoverable: false,
+        });
+      return _value;
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
     }
+  }
+
+  /**
+   * Get the signed download URL for this screen's screenshot. Cache-aware: served from generation data when present; responses are written back to the cache.
+   * Tool: get_screen
+   */
+  async getImageUrl(): Promise<string> {
+    // Use cached screenshot URL from generation response
+    if ((this.data as any)?.screenshot?.downloadUrl)
+      return (this.data as any)?.screenshot?.downloadUrl;
+
+    try {
+      const raw = await this.client.callTool<GetScreenResponse>("get_screen", {
+        projectId: this.projectId,
+        screenId: this.screenId,
+        name: `projects/${this.projectId}/screens/${this.screenId}`,
+      });
+      // writeBack: merge the response into this.data so the next call hits the cache
+      if (raw && typeof raw === "object")
+        this.data = { ...(this.data as object | undefined), ...raw };
+      const _value = raw?.screenshot?.downloadUrl;
+      if (_value == null || _value === "")
+        throw new StitchError({
+          code: "NOT_FOUND",
+          message:
+            "get_screen response has no screenshot.downloadUrl for this resource",
+          recoverable: false,
+        });
+      return _value;
+    } catch (error) {
+      throw StitchError.fromUnknown(error);
+    }
+  }
 }
 
 /** Declaration-merged so the generated Screen type includes the handwritten extension methods provided at runtime. */
-export interface Screen extends ScreenContentSpec {
-}
+export interface Screen extends ScreenContentSpec {}

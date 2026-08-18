@@ -17,13 +17,15 @@ import { buildAuthHeaders } from "../../src/auth.js";
 
 describe("buildAuthHeaders", () => {
   it("emits X-Goog-Api-Key for an API key", () => {
-    expect(buildAuthHeaders({ apiKey: "k" })).toEqual({ "X-Goog-Api-Key": "k" });
+    expect(buildAuthHeaders({ apiKey: "k" })).toEqual({
+      "X-Goog-Api-Key": "k",
+    });
   });
 
   it("emits Bearer + quota project for an access token", () => {
-    expect(
-      buildAuthHeaders({ accessToken: "t", quotaProjectId: "p" }),
-    ).toEqual({ Authorization: "Bearer t", "X-Goog-User-Project": "p" });
+    expect(buildAuthHeaders({ accessToken: "t", quotaProjectId: "p" })).toEqual(
+      { Authorization: "Bearer t", "X-Goog-User-Project": "p" },
+    );
   });
 
   it("omits the quota header when no project is given", () => {

@@ -23,8 +23,8 @@ Gates: validate ✓ check:skills ✓ build ✓ 228/228 unit ✓ 113/113 scripts 
 
 STAGE B COMPLETE
 
-
 ## Diffstat
+
 ```
  .../test/fixtures/responses/upload_design_md.json  |   1 +
  packages/sdk/test/unit/response-fixtures.test.ts   | 194 +++++++++++++++++++++

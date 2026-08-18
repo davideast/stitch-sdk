@@ -578,7 +578,11 @@ export function generateMethodParams(
     if (spec.optional) {
       optional.push({ name: paramName, type: tsType });
     } else {
-      positional.push({ name: paramName, type: tsType, hasQuestionToken: false });
+      positional.push({
+        name: paramName,
+        type: tsType,
+        hasQuestionToken: false,
+      });
     }
   }
   if (optional.length > 0) {
@@ -803,9 +807,7 @@ async function main() {
     .filter((t) => preRepair.get(t.name) !== JSON.stringify(t))
     .map((t) => t.name);
   if (repairedTools.length > 0) {
-    console.log(
-      `🩹 Schema repair applied to: ${repairedTools.join(", ")}`,
-    );
+    console.log(`🩹 Schema repair applied to: ${repairedTools.join(", ")}`);
   }
 
   const domainMap = DomainMap.parse(JSON.parse(domainMapContent));
@@ -929,10 +931,66 @@ async function main() {
     renamedDefs[newName] = def;
   }
 
+  function emitEntityDataInterfaces(
+    domainMap: ReturnType<typeof DomainMap.parse>,
+  ): string {
+    const chunks: string[] = [];
+    chunks.push(
+      `export interface ThumbnailScreenshot {\n` +
+        `  name: string;\n` +
+        `  downloadUrl: string;\n` +
+        `}`,
+    );
+    for (const [className, config] of Object.entries(domainMap.classes)) {
+      if (config.isRoot) continue;
+      if (className === "Project") {
+        chunks.push(
+          `/** Cached data interface for Project [V1_PLAN D4]. */\n` +
+            `export interface ProjectData {\n` +
+            `  name?: string;\n` +
+            `  title?: string;\n` +
+            `  visibility?: string;\n` +
+            `  createTime?: string;\n` +
+            `  updateTime?: string;\n` +
+            `  projectType?: string;\n` +
+            `  origin?: string;\n` +
+            `  deviceType?: string;\n` +
+            `  thumbnailScreenshot?: ThumbnailScreenshot;\n` +
+            `  designTheme?: DesignTheme;\n` +
+            `  screenInstances?: ScreenInstance[];\n` +
+            `  [key: string]: unknown;\n` +
+            `}`,
+        );
+      } else if (className === "Screen") {
+        chunks.push(
+          `/** Cached data interface for Screen [V1_PLAN D4]. */\n` +
+            `export interface ScreenData {\n` +
+            `  name?: string;\n` +
+            `  title?: string;\n` +
+            `  htmlCode?: File;\n` +
+            `  screenshot?: File;\n` +
+            `  [key: string]: unknown;\n` +
+            `}`,
+        );
+      } else {
+        chunks.push(
+          `/** Cached data interface for ${className} [V1_PLAN D4]. */\n` +
+            `export interface ${className}Data {\n` +
+            `  name?: string;\n` +
+            `  title?: string;\n` +
+            `  displayName?: string;\n` +
+            `  [key: string]: unknown;\n` +
+            `}`,
+        );
+      }
+    }
+    return chunks.join("\n\n");
+  }
+
   let fileCount = 0;
   const typesFile = tsProject.createSourceFile("types.generated.ts");
   typesFile.addStatements(
-    `/**\n * ${headerComment}\n */\n\n${emitNamedInterfaces(renamedDefs, namedTypes)}`,
+    `/**\n * ${headerComment}\n */\n\n${emitNamedInterfaces(renamedDefs, namedTypes)}\n\n${emitEntityDataInterfaces(domainMap)}`,
   );
   await Bun.write(
     resolve(GENERATED_DIR, "types.generated.ts"),
@@ -1011,10 +1069,14 @@ async function main() {
         namedImports: ["Generation"],
       });
     }
-    if (namedTypes.size > 0) {
+    const typesToImport = new Set(namedTypes.values());
+    if (!config.isRoot) {
+      typesToImport.add(`${className}Data`);
+    }
+    if (typesToImport.size > 0) {
       sourceFile.addImportDeclaration({
         moduleSpecifier: "./types.generated.js",
-        namedImports: Array.from(namedTypes.values()),
+        namedImports: Array.from(typesToImport),
       });
     }
 
@@ -1061,9 +1123,7 @@ async function main() {
     if (config.publicInterface) {
       sourceFile.addImportDeclaration({
         moduleSpecifier: config.publicInterface.importPath,
-        namedImports: [
-          { name: config.publicInterface.name, isTypeOnly: true },
-        ],
+        namedImports: [{ name: config.publicInterface.name, isTypeOnly: true }],
       });
       sourceFile.addInterface({
         name: className,
@@ -1107,10 +1167,22 @@ async function main() {
           hasExclamationToken: true,
         });
       }
-      // `unknown`, not `any`: raw response data is untyped at the edge,
-      // and consumers should narrow before use. Load-bearing fields get
-      // typed accessors on the extension classes.
-      cls.addProperty({ name: "data", type: "unknown", scope: Scope.Public });
+      cls.addProperty({
+        name: "data",
+        type: `${className}Data`,
+        hasQuestionToken: true,
+        scope: Scope.Public,
+      });
+
+      cls.addGetAccessor({
+        name: "title",
+        returnType: "string | undefined",
+        scope: Scope.Public,
+        statements: ["return this.data?.title;"],
+        docs: [
+          { description: "Typed accessor for the entity's display title." },
+        ],
+      });
 
       cls.addConstructor({
         // SEALED (V1_PLAN §3.3): entities are constructed ONLY by the
@@ -1387,6 +1459,11 @@ async function main() {
   console.log(
     `\n📦 Generated ${fileCount} files in packages/sdk/generated/src/`,
   );
+
+  // Format generated files before hashing so `npm run format:check` and
+  // lockfile validation remain in lockstep.
+  console.log("🎨 Formatting generated files...");
+  Bun.spawnSync(["npx", "prettier", "--write", GENERATED_DIR]);
 
   // Update stitch-sdk.lock
   const generatedHash = hashDirectory(GENERATED_DIR);

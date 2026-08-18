@@ -36,14 +36,6 @@ import { UploadHandler } from "./upload-handler.js";
 
 export class Project extends GeneratedProject {
   /**
-   * Typed accessor for the project's display title (from cached response
-   * data). `data` itself is `unknown` — narrow it or use accessors.
-   */
-  get title(): string | undefined {
-    return (this.data as any)?.title;
-  }
-
-  /**
    * Upload any supported design or document file asset (PNG, JPG, WEBP, HTML) into the project.
    * Creates a new screen canvas entity from the file contents.
    *

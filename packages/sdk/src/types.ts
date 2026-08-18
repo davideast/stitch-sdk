@@ -26,22 +26,9 @@ import type {
   ScreenInstance,
 } from "../generated/src/types.generated.js";
 
-export interface ThumbnailScreenshot {
-  name: string;
-  downloadUrl: string;
-}
-
-export interface ProjectData {
-  name: string;
-  title?: string;
-  visibility: string;
-  createTime: string;
-  updateTime: string;
-  projectType?: string;
-  origin?: string;
-  deviceType?: string;
-  thumbnailScreenshot?: ThumbnailScreenshot;
-  designTheme: DesignTheme;
-  screenInstances?: ScreenInstance[];
-}
-
+export type {
+  ThumbnailScreenshot,
+  ProjectData,
+  ScreenData,
+  DesignSystemData,
+} from "../generated/src/types.generated.js";

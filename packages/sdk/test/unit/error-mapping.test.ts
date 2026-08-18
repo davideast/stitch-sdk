@@ -13,10 +13,7 @@
 // limitations under the License.
 
 import { describe, it, expect } from "vitest";
-import {
-  classifyError,
-  isRecoverable,
-} from "../../src/spec/error-mapping.js";
+import { classifyError, isRecoverable } from "../../src/spec/error-mapping.js";
 import type { StitchErrorCode } from "../../src/spec/errors.js";
 
 describe("classifyError", () => {
@@ -27,8 +24,9 @@ describe("classifyError", () => {
     [403, undefined, "PERMISSION_DENIED"],
     [401, undefined, "AUTH_FAILED"],
     [500, undefined, "UNKNOWN_ERROR"],
-    [502, undefined, "UNKNOWN_ERROR"],
-    [503, undefined, "UNKNOWN_ERROR"],
+    [502, undefined, "SERVICE_UNAVAILABLE"],
+    [503, undefined, "SERVICE_UNAVAILABLE"],
+    [504, undefined, "SERVICE_UNAVAILABLE"],
     // Precedence: status ALWAYS wins; text is never consulted with a status.
     [403, "rate limit exceeded", "PERMISSION_DENIED"],
     [500, "rate limit exceeded", "UNKNOWN_ERROR"],
@@ -83,9 +81,12 @@ describe("classifyError", () => {
     ["crate limit reached", "UNKNOWN_ERROR"],
   ];
 
-  it.each(negativeCases)("text %j must NOT misclassify (→ %s)", (text, expected) => {
-    expect(classifyError({ text })).toBe(expected);
-  });
+  it.each(negativeCases)(
+    "text %j must NOT misclassify (→ %s)",
+    (text, expected) => {
+      expect(classifyError({ text })).toBe(expected);
+    },
+  );
 
   it("matches case-insensitively", () => {
     expect(classifyError({ text: "RATE LIMIT EXCEEDED" })).toBe("RATE_LIMITED");
@@ -98,8 +99,9 @@ describe("classifyError", () => {
 });
 
 describe("isRecoverable", () => {
-  it("is true only for RATE_LIMITED and NETWORK_ERROR", () => {
+  it("is true only for RATE_LIMITED, SERVICE_UNAVAILABLE, and NETWORK_ERROR", () => {
     expect(isRecoverable("RATE_LIMITED")).toBe(true);
+    expect(isRecoverable("SERVICE_UNAVAILABLE")).toBe(true);
     expect(isRecoverable("NETWORK_ERROR")).toBe(true);
     expect(isRecoverable("AUTH_FAILED")).toBe(false);
     expect(isRecoverable("NOT_FOUND")).toBe(false);

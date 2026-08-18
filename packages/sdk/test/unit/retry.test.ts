@@ -188,9 +188,8 @@ describe("transport HTTP errors normalized + retried (M3)", () => {
   });
 
   it("a real 429 (StreamableHTTPError) on a list_* tool is retried then succeeds", async () => {
-    const { StreamableHTTPError } = await import(
-      "@modelcontextprotocol/sdk/client/streamableHttp.js"
-    );
+    const { StreamableHTTPError } =
+      await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
     const client = createConnectedClient();
     const mock = vi
       .fn()
@@ -207,9 +206,8 @@ describe("transport HTTP errors normalized + retried (M3)", () => {
   });
 
   it("a 401 transport error surfaces as a StitchError(AUTH_FAILED) with .status, not a raw StreamableHTTPError", async () => {
-    const { StreamableHTTPError } = await import(
-      "@modelcontextprotocol/sdk/client/streamableHttp.js"
-    );
+    const { StreamableHTTPError } =
+      await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
     const { StitchError } = await import("../../src/spec/errors.js");
     const client = createConnectedClient();
     client["client"].callTool = vi
@@ -220,13 +218,14 @@ describe("transport HTTP errors normalized + retried (M3)", () => {
     expect(err).toBeInstanceOf(StitchError);
     expect((err as InstanceType<typeof StitchError>).code).toBe("AUTH_FAILED");
     expect((err as InstanceType<typeof StitchError>).status).toBe(401);
-    expect((err as InstanceType<typeof StitchError>).toolName).toBe("get_screen");
+    expect((err as InstanceType<typeof StitchError>).toolName).toBe(
+      "get_screen",
+    );
   });
 
   it("a 429 on a GENERATIVE tool is NOT retried (still normalized to StitchError)", async () => {
-    const { StreamableHTTPError } = await import(
-      "@modelcontextprotocol/sdk/client/streamableHttp.js"
-    );
+    const { StreamableHTTPError } =
+      await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
     const { StitchError } = await import("../../src/spec/errors.js");
     const client = createConnectedClient();
     const mock = vi
@@ -234,9 +233,53 @@ describe("transport HTTP errors normalized + retried (M3)", () => {
       .mockRejectedValue(new StreamableHTTPError(429, "Too Many Requests"));
     client["client"].callTool = mock;
 
-    const err = await client.callTool("generate_screen_from_text", {}).catch((e) => e);
+    const err = await client
+      .callTool("generate_screen_from_text", {})
+      .catch((e) => e);
     expect(mock).toHaveBeenCalledTimes(1); // generative tools never auto-retry
     expect(err).toBeInstanceOf(StitchError);
     expect((err as InstanceType<typeof StitchError>).code).toBe("RATE_LIMITED");
+  });
+});
+
+describe("HTTP 503 retry and Retry-After support (Ticket 2)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("parseRetryAfter parses integer seconds and converts to milliseconds", async () => {
+    const { parseRetryAfter } = await import("../../src/client.js");
+    expect(parseRetryAfter("5")).toBe(5000);
+    expect(parseRetryAfter(4)).toBe(4000);
+    expect(parseRetryAfter("invalid")).toBeUndefined();
+    expect(parseRetryAfter(null)).toBeUndefined();
+  });
+
+  it("retries get_* tool when receiving 503 Service Unavailable", async () => {
+    const { StreamableHTTPError } =
+      await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+    const client = createConnectedClient();
+    const mock = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new StreamableHTTPError(503, "Service Unavailable"),
+      )
+      .mockResolvedValueOnce(SUCCESS_ENVELOPE);
+    client["client"].callTool = mock;
+
+    const promise = client.callTool("get_screen", {
+      projectId: "p1",
+      screenId: "s1",
+    });
+    await vi.runAllTimersAsync();
+    const result = await promise;
+
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ projects: [{ name: "p1" }] });
   });
 });

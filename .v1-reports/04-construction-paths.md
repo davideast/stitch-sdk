@@ -26,8 +26,8 @@ longer hydrate IDs) and masked by over-mocked tests:
 
 Gates: validate ✓ build ✓ 205/205 unit ✓ 81/81 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/test/unit/upload.test.ts        |  19 +++--
  packages/sdk/test/unit/virtual-tools.test.ts | 101 ++++++++++++++++++++++

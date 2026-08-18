@@ -12,14 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/**
- * Service contract for Screen content side-effects [V1_PLAN §3.2, D2].
- *
- * WHY HANDWRITTEN: getHtml()/getImage() FETCH the artifact bytes from
- * the signed download URL — network IO + binary handling the codegen
- * pipeline cannot express. The URL accessors (getHtmlUrl/getImageUrl)
- * remain generated, cache-aware bindings.
- */
+import { z } from "zod";
+
+export const FetchArtifactInputSchema = z.object({
+  url: z.string().url(),
+  label: z.string().min(1),
+});
+
+export type FetchArtifactInput = z.input<typeof FetchArtifactInputSchema>;
+
+export const FetchArtifactErrorCode = z.enum(["NOT_FOUND", "NETWORK_ERROR"]);
+
+export type FetchArtifactErrorCode = z.infer<typeof FetchArtifactErrorCode>;
+
+export type FetchArtifactResult<T = Response> =
+  | {
+      success: true;
+      response: T;
+    }
+  | {
+      success: false;
+      error: {
+        code: FetchArtifactErrorCode;
+        message: string;
+        recoverable: boolean;
+      };
+    };
+
+export interface ScreenContentHandlerSpec {
+  fetchArtifact(
+    input: FetchArtifactInput,
+  ): Promise<FetchArtifactResult<Response>>;
+}
 
 /**
  * The COMPLETE set of members the handwritten Screen extension adds beyond

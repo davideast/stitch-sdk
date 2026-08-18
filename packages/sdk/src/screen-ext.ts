@@ -28,46 +28,28 @@ import { Screen as GeneratedScreen } from "../generated/src/screen.js";
 import { StitchError } from "./spec/errors.js";
 import { EntityManager } from "./entity-manager.js";
 import type { ScreenContentSpec } from "./spec/content.js";
-
-async function fetchArtifact(url: string, what: string): Promise<Response> {
-  let res: Response;
-  try {
-    res = await fetch(url);
-  } catch (err) {
-    throw new StitchError({
-      code: "NETWORK_ERROR",
-      message: `Failed to fetch ${what}: ${err instanceof Error ? err.message : String(err)}`,
-      recoverable: true,
-    });
-  }
-  if (!res.ok) {
-    throw new StitchError({
-      code: res.status === 404 ? "NOT_FOUND" : "NETWORK_ERROR",
-      // Signed URLs expire — a 403 here usually means "refetch the screen"
-      message: `Failed to fetch ${what}: HTTP ${res.status} (signed URLs expire; re-fetch the screen for a fresh URL)`,
-      recoverable: res.status !== 404,
-    });
-  }
-  return res;
-}
+import { ScreenContentHandler } from "./content-handler.js";
 
 export class Screen extends GeneratedScreen implements ScreenContentSpec {
-  /**
-   * Typed accessor for the screen's display title (from cached response
-   * data). `data` itself is `unknown` — narrow it or use accessors.
-   */
-  get title(): string | undefined {
-    return (this.data as any)?.title;
-  }
-
   /**
    * Fetch the screen's HTML content.
    * For just the download URL, use getHtmlUrl().
    */
   async getHtml(): Promise<string> {
     const url = await this.getHtmlUrl();
-    const res = await fetchArtifact(url, `HTML for screen ${this.screenId}`);
-    return res.text();
+    const handler = new ScreenContentHandler();
+    const result = await handler.fetchArtifact({
+      url,
+      label: `HTML for screen ${this.screenId}`,
+    });
+    if (!result.success) {
+      throw new StitchError({
+        code: result.error.code,
+        message: result.error.message,
+        recoverable: result.error.recoverable,
+      });
+    }
+    return result.response.text();
   }
 
   /**
@@ -76,11 +58,19 @@ export class Screen extends GeneratedScreen implements ScreenContentSpec {
    */
   async getImage(): Promise<Uint8Array> {
     const url = await this.getImageUrl();
-    const res = await fetchArtifact(
+    const handler = new ScreenContentHandler();
+    const result = await handler.fetchArtifact({
       url,
-      `screenshot for screen ${this.screenId}`,
-    );
-    return new Uint8Array(await res.arrayBuffer());
+      label: `screenshot for screen ${this.screenId}`,
+    });
+    if (!result.success) {
+      throw new StitchError({
+        code: result.error.code,
+        message: result.error.message,
+        recoverable: result.error.recoverable,
+      });
+    }
+    return new Uint8Array(await result.response.arrayBuffer());
   }
 }
 

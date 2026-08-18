@@ -6,8 +6,6 @@
 
 ### docs(v1): mark v1/00 green in execution table
 
-
-
 ### feat(codegen)!: optional params move to trailing options object [V1_PLAN D12]
 
 Required tool params stay positional (IR order); all optional params are
@@ -25,12 +23,10 @@ breaking method signatures.
   generate/edit/variants optional args move into options
 - call sites, tests, README, and skills updated
 
-
 ### docs: add V1 plan with pre-mortem amendments and autonomous execution plan
 
-
-
 ## Diffstat
+
 ```
  packages/sdk/test/unit/sdk.test.ts                |    2 +-
  scripts/generate-sdk.ts                           |   90 +-

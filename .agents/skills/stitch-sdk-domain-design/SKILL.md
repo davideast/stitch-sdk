@@ -48,14 +48,14 @@ Each class represents a domain entity. Ask: "What noun does the user interact wi
 
 ### Key decisions:
 
-| Field               | Purpose                                                       | Example                                           |
-| ------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
-| `constructorParams` | Fields stored on the instance                                 | `["projectId", "screenId"]`                       |
-| `reference`         | Identity-map keys (`.id` aliases the LAST key)                | `{ "keys": ["projectId", "screenId"] }`           |
-| `parentField`       | Which param is injected from a parent class                   | `"projectId"`                                     |
-| `factories`         | Local factory methods (no API call)                           | `[{ "method": "project", "returns": "Project" }]` |
-| `sideEffects`       | Handwritten extension methods (declared, never generated)     | `[{ "method": "upload", "reason": "private_rest", "specPath": "src/spec/upload.ts" }]` |
-| `extensionPath`     | Module re-exporting the class with handwritten methods        | `"../../src/project-ext.js"`                      |
+| Field               | Purpose                                                   | Example                                                                                |
+| ------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `constructorParams` | Fields stored on the instance                             | `["projectId", "screenId"]`                                                            |
+| `reference`         | Identity-map keys (`.id` aliases the LAST key)            | `{ "keys": ["projectId", "screenId"] }`                                                |
+| `parentField`       | Which param is injected from a parent class               | `"projectId"`                                                                          |
+| `factories`         | Local factory methods (no API call)                       | `[{ "method": "project", "returns": "Project" }]`                                      |
+| `sideEffects`       | Handwritten extension methods (declared, never generated) | `[{ "method": "upload", "reason": "private_rest", "specPath": "src/spec/upload.ts" }]` |
+| `extensionPath`     | Module re-exporting the class with handwritten methods    | `"../../src/project-ext.js"`                                                           |
 
 > [!IMPORTANT]
 > **The IR schema is STRICT.** Unknown keys are hard validation errors, not
@@ -73,12 +73,12 @@ Each binding maps one MCP tool to one class method. Ask: "Who owns this action?"
 
 ### Arg routing
 
-| Type        | Meaning                  | Code generated                                             |
-| ----------- | ------------------------ | ---------------------------------------------------------- |
-| `self`      | From `this.field`        | `projectId: this.projectId`                                |
-| `param`     | From method parameter    | `prompt: prompt`                                           |
+| Type        | Meaning                                                         | Code generated                                             |
+| ----------- | --------------------------------------------------------------- | ---------------------------------------------------------- |
+| `self`      | From `this.field`                                               | `projectId: this.projectId`                                |
+| `param`     | From method parameter                                           | `prompt: prompt`                                           |
 | `computed`  | `template` interpolation (`"template": "projects/{projectId}"`) | `name: \`projects/${this.projectId}/screens/${screenId}\`` |
-| `selfArray` | Wrap self field as array | `selectedScreenIds: [this.screenId]`                       |
+| `selfArray` | Wrap self field as array                                        | `selectedScreenIds: [this.screenId]`                       |
 
 Optional params use `"optional": true`. Renamed params use `"rename": "newName"`.
 A `"default": "VALUE"` (requires `optional: true`) is sent when the caller

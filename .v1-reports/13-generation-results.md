@@ -21,8 +21,8 @@ IR level so the bug class cannot recur:
   structurally impossible), forbids redundant 'array'
 - codegen: emits Generation<Class, ToolResponse>; empty generations
   throw a descriptive StitchError at the call site so .first is total
-- truncation lint ESCALATES to a hard codegen error for generate_/
-  edit_/apply_ tools without kind:'generation'
+- truncation lint ESCALATES to a hard codegen error for generate*/
+  edit*/apply\_ tools without kind:'generation'
 - domain-map: all four generative bindings migrated to each/each +
   kind:'generation'
 - BREAKING: generate/edit return Generation (was Screen); variants/
@@ -34,8 +34,8 @@ IR level so the bug class cannot recur:
 
 Gates: validate ✓ check:skills ✓ build ✓ 318/318 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  .../__snapshots__/codegen-snapshot.test.ts.snap    |  9 ++--
  scripts/test/codegen-snapshot.test.ts              | 14 +++++-

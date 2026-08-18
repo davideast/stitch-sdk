@@ -21,8 +21,8 @@
 
 Gates: validate ✓ build ✓ 323/323 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/src/adk-adapter.ts               | 23 ++++++++++++
  packages/sdk/src/tools-adapter.ts             | 54 +++++++++++++++++----------

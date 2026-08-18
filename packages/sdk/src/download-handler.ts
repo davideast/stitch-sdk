@@ -344,10 +344,15 @@ export class DownloadAssetsHandler implements DownloadAssetsSpec {
           const tempDsFilename = `.tmp-ds-${crypto.randomBytes(8).toString("hex")}`;
           const tempDsPath = path.join(resolvedTempDir, tempDsFilename);
 
-          await writeAtomic(tempDsPath, dsPath, ds.designSystem.theme.designMd, {
-            flag: "wx",
-            mode: fileMode,
-          });
+          await writeAtomic(
+            tempDsPath,
+            dsPath,
+            ds.designSystem.theme.designMd,
+            {
+              flag: "wx",
+              mode: fileMode,
+            },
+          );
         }
       } catch (error) {
         warnings.push(

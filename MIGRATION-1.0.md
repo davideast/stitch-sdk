@@ -49,29 +49,29 @@ for (const screen of gen) { ... }  // iterable
 
 ## Full breaking-change list
 
-| Area | 0.x | 1.0 |
-| --- | --- | --- |
-| `project.generate`, `screen.edit` | `Promise<Screen>` (truncated!) | `Promise<Generation<Screen, …>>` |
-| `screen.variants`, `designSystem.apply` | `Promise<Screen[]>` | `Promise<Generation<Screen, …>>` |
-| Optional params | positional (`generate(p, deviceType?)`) | trailing `options` object — future fields (e.g. `onProgress`, `signal`) land here non-breakingly |
-| `createProject(title?)` | positional | `createProject({ title })` |
-| `generate` deviceType default | not sent | sends `"DESKTOP"` when omitted (per tool contract) |
-| `screen.getHtml()` | returned a download URL | returns **HTML content**; URL via `getHtmlUrl()` |
-| `screen.getImage()` | returned a download URL | returns **`Uint8Array` bytes**; URL via `getImageUrl()` |
-| Missing artifact | silent `""` | throws `StitchError` `NOT_FOUND` |
-| `new Project/Screen/DesignSystem(...)` | compiled, silently broken IDs | `protected` constructor (compile error) — use `stitch.project(id)`, `project.screen(id)`, `project.designSystem(id)` |
-| Identity map | same ID aliased ACROSS projects (bug) | composite keys; same instance only for the same fully-qualified identity. Opt out: `new StitchToolClient({ entityCache: false })` |
-| `entity.data` | `any` | `unknown` — narrow it, or use typed accessors (`.title`) |
-| `toolDefinitions`, `toolMap` | root export + `stitch.toolMap` | `@google/stitch-sdk/tools` |
-| `DesignTheme`, `ScreenInstance` types from root | handwritten, WRONG shapes | the real generated shapes (same names, correct fields) |
-| `GenerateScreenParams`, `buildFifeSuffix`, `repairToolSchemas`, `repairSchema`, `StitchProxyConfigSchema` | exported | removed / type-only |
-| `@google/stitch-sdk/ai` | worked without `ai` installed (forged internals) | requires the optional peer `ai` (v6+); actionable error otherwise |
-| `@google/stitch-sdk/adk` | crashed with bare `ERR_MODULE_NOT_FOUND` | requires optional peer `@google/adk`; actionable error |
-| Adapter `include:` filters | unknown names silently dropped | unknown names **throw**, listing available tools |
-| `client.close()` | connection silently resurrected | terminal; further calls throw `CLIENT_CLOSED` |
-| Retry | none | automatic backoff for `RATE_LIMITED` on `get_*`/`list_*` **only** (generative calls are never auto-retried); `retry: false` disables |
-| Errors | message-only | `StitchError.status` (HTTP) and `.toolName` (MCP) populated |
-| Env vars | `STITCH_HOST`, `STITCH_MCP_URL` ad hoc | `STITCH_BASE_URL` (aliases accepted; `STITCH_HOST` warns, removed in 2.0). `GOOGLE_CLOUD_PROJECT` remains first-class; `STITCH_PROJECT_ID` also accepted |
+| Area                                                                                                      | 0.x                                              | 1.0                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project.generate`, `screen.edit`                                                                         | `Promise<Screen>` (truncated!)                   | `Promise<Generation<Screen, …>>`                                                                                                                         |
+| `screen.variants`, `designSystem.apply`                                                                   | `Promise<Screen[]>`                              | `Promise<Generation<Screen, …>>`                                                                                                                         |
+| Optional params                                                                                           | positional (`generate(p, deviceType?)`)          | trailing `options` object — future fields (e.g. `onProgress`, `signal`) land here non-breakingly                                                         |
+| `createProject(title?)`                                                                                   | positional                                       | `createProject({ title })`                                                                                                                               |
+| `generate` deviceType default                                                                             | not sent                                         | sends `"DESKTOP"` when omitted (per tool contract)                                                                                                       |
+| `screen.getHtml()`                                                                                        | returned a download URL                          | returns **HTML content**; URL via `getHtmlUrl()`                                                                                                         |
+| `screen.getImage()`                                                                                       | returned a download URL                          | returns **`Uint8Array` bytes**; URL via `getImageUrl()`                                                                                                  |
+| Missing artifact                                                                                          | silent `""`                                      | throws `StitchError` `NOT_FOUND`                                                                                                                         |
+| `new Project/Screen/DesignSystem(...)`                                                                    | compiled, silently broken IDs                    | `protected` constructor (compile error) — use `stitch.project(id)`, `project.screen(id)`, `project.designSystem(id)`                                     |
+| Identity map                                                                                              | same ID aliased ACROSS projects (bug)            | composite keys; same instance only for the same fully-qualified identity. Opt out: `new StitchToolClient({ entityCache: false })`                        |
+| `entity.data`                                                                                             | `any`                                            | `unknown` — narrow it, or use typed accessors (`.title`)                                                                                                 |
+| `toolDefinitions`, `toolMap`                                                                              | root export + `stitch.toolMap`                   | `@google/stitch-sdk/tools`                                                                                                                               |
+| `DesignTheme`, `ScreenInstance` types from root                                                           | handwritten, WRONG shapes                        | the real generated shapes (same names, correct fields)                                                                                                   |
+| `GenerateScreenParams`, `buildFifeSuffix`, `repairToolSchemas`, `repairSchema`, `StitchProxyConfigSchema` | exported                                         | removed / type-only                                                                                                                                      |
+| `@google/stitch-sdk/ai`                                                                                   | worked without `ai` installed (forged internals) | requires the optional peer `ai` (v6+); actionable error otherwise                                                                                        |
+| `@google/stitch-sdk/adk`                                                                                  | crashed with bare `ERR_MODULE_NOT_FOUND`         | requires optional peer `@google/adk`; actionable error                                                                                                   |
+| Adapter `include:` filters                                                                                | unknown names silently dropped                   | unknown names **throw**, listing available tools                                                                                                         |
+| `client.close()`                                                                                          | connection silently resurrected                  | terminal; further calls throw `CLIENT_CLOSED`                                                                                                            |
+| Retry                                                                                                     | none                                             | automatic backoff for `RATE_LIMITED` on `get_*`/`list_*` **only** (generative calls are never auto-retried); `retry: false` disables                     |
+| Errors                                                                                                    | message-only                                     | `StitchError.status` (HTTP) and `.toolName` (MCP) populated                                                                                              |
+| Env vars                                                                                                  | `STITCH_HOST`, `STITCH_MCP_URL` ad hoc           | `STITCH_BASE_URL` (aliases accepted; `STITCH_HOST` warns, removed in 2.0). `GOOGLE_CLOUD_PROJECT` remains first-class; `STITCH_PROJECT_ID` also accepted |
 
 ## New capabilities (non-breaking)
 

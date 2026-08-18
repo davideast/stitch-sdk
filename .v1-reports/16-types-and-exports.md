@@ -22,8 +22,8 @@
 
 Gates: validate ✓ check:skills ✓ smoke ✓ build ✓ 320/320 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/test/unit/fife.test.ts                | 44 ----------------------
  scripts/generate-sdk.ts                            |  9 +++--

@@ -548,7 +548,10 @@ describe("generateArgsObject", () => {
   test("computed template referencing an optional param → options?.x interpolation", () => {
     const result = generateArgsObject({
       revision: { from: "param", optional: true },
-      name: { from: "computed", template: "projects/{projectId}/rev/{revision}" },
+      name: {
+        from: "computed",
+        template: "projects/{projectId}/rev/{revision}",
+      },
     });
     expect(result).toContain("${options?.revision}");
   });
@@ -706,7 +709,7 @@ describe("emitCacheProjection with index", () => {
 // ── M4: union array item types are parenthesized [V1_REVIEW_FIXES] ──
 
 describe("jsonSchemaToTs array-of-union precedence", () => {
-  test("array of enum → (\"A\" | \"B\")[], not \"A\" | \"B\"[]", () => {
+  test('array of enum → ("A" | "B")[], not "A" | "B"[]', () => {
     const result = jsonSchemaToTs({
       type: "array",
       items: { enum: ["LAYOUT", "COLOR_SCHEME", "TEXT_CONTENT"] },

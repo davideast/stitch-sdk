@@ -23,8 +23,8 @@
 
 Gates: check:skills ✓ validate ✓ build ✓ 212/212 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/src/proxy/handlers/listTools.ts     |  12 +-
  scripts/check-skill-consistency.ts               | 149 +++++++++++++++++++++++

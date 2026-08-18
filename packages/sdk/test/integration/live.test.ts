@@ -20,9 +20,10 @@ import { Project } from "../../src/project-ext.js";
 
 // Either auth mode unlocks the suite — API-key-only environments were
 // previously locked out entirely [V1_PLAN §4.2].
-const runIfConfigured = process.env.STITCH_ACCESS_TOKEN || process.env.STITCH_API_KEY
-  ? describe
-  : describe.skip;
+const runIfConfigured =
+  process.env.STITCH_ACCESS_TOKEN || process.env.STITCH_API_KEY
+    ? describe
+    : describe.skip;
 
 runIfConfigured("Stitch Live Integration", () => {
   let sdk: Stitch;

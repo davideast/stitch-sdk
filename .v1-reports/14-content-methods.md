@@ -28,8 +28,8 @@ D2: method names now do what they promise.
 
 Gates: validate ✓ check:skills ✓ build ✓ 325/325 unit ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  scripts/e2e-test.ts                                |   8 +-
  scripts/generate-sdk.ts                            |  22 +++-

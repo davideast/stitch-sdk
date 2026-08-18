@@ -8,14 +8,22 @@
           {
             "name": "projects/p-fix/screens/applied-1",
             "title": "Home",
-            "htmlCode": { "downloadUrl": "https://files.example/applied-1.html" },
-            "screenshot": { "downloadUrl": "https://files.example/applied-1.png" }
+            "htmlCode": {
+              "downloadUrl": "https://files.example/applied-1.html"
+            },
+            "screenshot": {
+              "downloadUrl": "https://files.example/applied-1.png"
+            }
           },
           {
             "name": "projects/p-fix/screens/applied-2",
             "title": "Settings",
-            "htmlCode": { "downloadUrl": "https://files.example/applied-2.html" },
-            "screenshot": { "downloadUrl": "https://files.example/applied-2.png" }
+            "htmlCode": {
+              "downloadUrl": "https://files.example/applied-2.html"
+            },
+            "screenshot": {
+              "downloadUrl": "https://files.example/applied-2.png"
+            }
           }
         ]
       }
@@ -26,8 +34,12 @@
           {
             "name": "projects/p-fix/screens/applied-3",
             "title": "Profile",
-            "htmlCode": { "downloadUrl": "https://files.example/applied-3.html" },
-            "screenshot": { "downloadUrl": "https://files.example/applied-3.png" }
+            "htmlCode": {
+              "downloadUrl": "https://files.example/applied-3.html"
+            },
+            "screenshot": {
+              "downloadUrl": "https://files.example/applied-3.png"
+            }
           }
         ]
       }

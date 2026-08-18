@@ -35,7 +35,14 @@ const result = await Bun.build({
   entrypoints: [ENTRY],
   target: "node",
   minify: true,
-  external: ["@modelcontextprotocol/sdk", "cheerio", "zod", "ai", "@google/adk", "@google/genai"],
+  external: [
+    "@modelcontextprotocol/sdk",
+    "cheerio",
+    "zod",
+    "ai",
+    "@google/adk",
+    "@google/genai",
+  ],
 });
 
 if (!result.success) {
@@ -43,7 +50,9 @@ if (!result.success) {
   process.exit(1);
 }
 
-const bytes = result.outputs[0] ? (await result.outputs[0].arrayBuffer()).byteLength : 0;
+const bytes = result.outputs[0]
+  ? (await result.outputs[0].arrayBuffer()).byteLength
+  : 0;
 const kb = Math.round(bytes / 1024);
 console.log(`📦 Root entry bundle: ${kb} KB (budget ${BUDGET_KB} KB)`);
 

@@ -111,8 +111,8 @@ const generation = await project.generate(
   "Login page with email and password fields",
 );
 generation.screens; // every generated Screen
-generation.first;   // convenience: the first screen
-generation.raw;     // full typed tool response
+generation.first; // convenience: the first screen
+generation.raw; // full typed tool response
 
 // Optional settings go in a trailing options object
 const mobile = await project.generate("A settings page", {
@@ -125,11 +125,14 @@ const edited = await generation.first.edit(
 );
 
 // Generate variants of a screen
-const variants = await generation.first.variants("Try different color schemes", {
-  variantCount: 2,
-  creativeRange: "EXPLORE",
-  aspects: ["COLOR_SCHEME", "LAYOUT"],
-});
+const variants = await generation.first.variants(
+  "Try different color schemes",
+  {
+    variantCount: 2,
+    creativeRange: "EXPLORE",
+    aspects: ["COLOR_SCHEME", "LAYOUT"],
+  },
+);
 variants.screens; // all variant Screens
 ```
 
@@ -192,23 +195,23 @@ Error codes: `AUTH_FAILED`, `NOT_FOUND`, `PERMISSION_DENIED`, `RATE_LIMITED`, `N
 
 ### Stitch Class
 
-| Method                 | Returns              | Description                                 |
-| ---------------------- | -------------------- | ------------------------------------------- |
-| `createProject(options?)` | `Promise<Project>` | Create a new project (`options.title`)     |
-| `projects()`           | `Promise<Project[]>` | List all projects                           |
-| `project(id)`          | `Project`            | Reference a project by ID (no network call) |
+| Method                    | Returns              | Description                                 |
+| ------------------------- | -------------------- | ------------------------------------------- |
+| `createProject(options?)` | `Promise<Project>`   | Create a new project (`options.title`)      |
+| `projects()`              | `Promise<Project[]>` | List all projects                           |
+| `project(id)`             | `Project`            | Reference a project by ID (no network call) |
 
 ### Project Class
 
-| Method                             | Returns                   | Description                                      |
-| ---------------------------------- | ------------------------- | ------------------------------------------------ |
+| Method                             | Returns                       | Description                                                                               |
+| ---------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `generate(prompt, options?)`       | `Promise<Generation<Screen>>` | Generate screens — `.screens`, `.first`, `.raw` (`options.deviceType`, `options.modelId`) |
-| `screens()`                        | `Promise<Screen[]>`       | List all screens in the project                  |
-| `getScreen(screenId)`              | `Promise<Screen>`         | Retrieve a specific screen by ID                 |
-| `upload(filePath, opts?)`          | `Promise<Screen[]>`       | Upload an image/HTML file and create screen(s) from it |
-| `createDesignSystem(designSystem)` | `Promise<DesignSystem>`   | Create a design system for this project          |
-| `listDesignSystems()`              | `Promise<DesignSystem[]>` | List all design systems                          |
-| `designSystem(id)`                 | `DesignSystem`            | Reference by ID (no API call)                    |
+| `screens()`                        | `Promise<Screen[]>`           | List all screens in the project                                                           |
+| `getScreen(screenId)`              | `Promise<Screen>`             | Retrieve a specific screen by ID                                                          |
+| `upload(filePath, opts?)`          | `Promise<Screen[]>`           | Upload an image/HTML file and create screen(s) from it                                    |
+| `createDesignSystem(designSystem)` | `Promise<DesignSystem>`       | Create a design system for this project                                                   |
+| `listDesignSystems()`              | `Promise<DesignSystem[]>`     | List all design systems                                                                   |
+| `designSystem(id)`                 | `DesignSystem`                | Reference by ID (no API call)                                                             |
 
 `deviceType`: `"MOBILE"` | `"DESKTOP"` | `"TABLET"` | `"AGNOSTIC"`
 
@@ -216,20 +219,20 @@ Error codes: `AUTH_FAILED`, `NOT_FOUND`, `PERMISSION_DENIED`, `RATE_LIMITED`, `N
 
 ### DesignSystem Class
 
-| Method                           | Returns                 | Description                         |
-| -------------------------------- | ----------------------- | ----------------------------------- |
-| `update(designSystem)`           | `Promise<DesignSystem>` | Update the design system's theme    |
+| Method                           | Returns                       | Description                                      |
+| -------------------------------- | ----------------------------- | ------------------------------------------------ |
+| `update(designSystem)`           | `Promise<DesignSystem>`       | Update the design system's theme                 |
 | `apply(selectedScreenInstances)` | `Promise<Generation<Screen>>` | Apply this design system to screens (`.screens`) |
 
 ### Screen Class
 
-| Method                                             | Returns             | Description                              |
-| -------------------------------------------------- | ------------------- | ---------------------------------------- |
-| `getHtml()`                                        | `Promise<string>`     | Fetch the screen's HTML content          |
-| `getImage()`                                       | `Promise<Uint8Array>` | Fetch the screenshot bytes               |
-| `getHtmlUrl()` / `getImageUrl()`                   | `Promise<string>`     | Signed download URLs (cache-aware)       |
-| `edit(prompt, options?)`                           | `Promise<Generation<Screen>>` | Edit the screen using a text prompt      |
-| `variants(prompt, variantOptions, options?)`       | `Promise<Generation<Screen>>` | Generate variants of the screen          |
+| Method                                       | Returns                       | Description                         |
+| -------------------------------------------- | ----------------------------- | ----------------------------------- |
+| `getHtml()`                                  | `Promise<string>`             | Fetch the screen's HTML content     |
+| `getImage()`                                 | `Promise<Uint8Array>`         | Fetch the screenshot bytes          |
+| `getHtmlUrl()` / `getImageUrl()`             | `Promise<string>`             | Signed download URLs (cache-aware)  |
+| `edit(prompt, options?)`                     | `Promise<Generation<Screen>>` | Edit the screen using a text prompt |
+| `variants(prompt, variantOptions, options?)` | `Promise<Generation<Screen>>` | Generate variants of the screen     |
 
 `modelId`: `"GEMINI_3_PRO"` | `"GEMINI_3_FLASH"`
 

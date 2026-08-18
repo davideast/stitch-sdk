@@ -156,7 +156,10 @@ async function main() {
     "toolDefinitions NOT on root (moved to ./tools subpath)",
   );
   const toolsEntry = await import(resolve(DIST_DIR, "src/tools.js"));
-  assert(Array.isArray(toolsEntry.toolDefinitions), "tools subpath exports toolDefinitions");
+  assert(
+    Array.isArray(toolsEntry.toolDefinitions),
+    "tools subpath exports toolDefinitions",
+  );
   assert(toolsEntry.toolDefinitions.length > 0, "toolDefinitions is non-empty");
   assert(toolsEntry.toolMap instanceof Map, "toolMap is a Map");
   assert(

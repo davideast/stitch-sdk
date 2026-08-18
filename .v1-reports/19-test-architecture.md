@@ -22,8 +22,8 @@
 
 Gates: validate ✓ build ✓ 323/323 unit (91.9% cov) ✓ 113/113 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/vitest.config.ts                      | 18 ++++++
  scripts/generate-sdk.ts                            | 11 ++--

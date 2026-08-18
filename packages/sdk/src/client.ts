@@ -156,6 +156,29 @@ export function computeBackoffMs(
   return Math.min(maxMs, baseMs * 2 ** attempt) * rand();
 }
 
+/**
+ * Parse a Retry-After header (seconds or HTTP date) to milliseconds.
+ */
+export function parseRetryAfter(
+  header: string | number | null | undefined,
+): number | undefined {
+  if (header == null) return undefined;
+  if (typeof header === "number") {
+    return Number.isFinite(header) && header >= 0 ? header * 1000 : undefined;
+  }
+  const trimmed = header.trim();
+  if (!trimmed) return undefined;
+  if (/^\d+$/.test(trimmed)) {
+    const sec = parseInt(trimmed, 10);
+    return Number.isFinite(sec) ? sec * 1000 : undefined;
+  }
+  const timestamp = Date.parse(trimmed);
+  if (!Number.isNaN(timestamp)) {
+    return Math.max(0, timestamp - Date.now());
+  }
+  return undefined;
+}
+
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
@@ -172,12 +195,18 @@ function normalizeTransportError(err: unknown, toolName: string): unknown {
   if (err instanceof StitchError) return err;
   if (err instanceof StreamableHTTPError && typeof err.code === "number") {
     const code = classifyError({ status: err.code });
+    const headers = (err as any).headers || (err as any).response?.headers;
+    const retryAfterVal =
+      headers?.get?.("retry-after") ??
+      headers?.["retry-after"] ??
+      (err as any).retryAfter;
     return new StitchError({
       code,
       message: `Tool Call Failed [${toolName}]: HTTP ${err.code} — ${err.message}`,
       recoverable: isRecoverable(code),
       status: err.code,
       toolName,
+      retryAfter: parseRetryAfter(retryAfterVal),
     });
   }
   return err;
@@ -372,13 +401,15 @@ export class StitchToolClient implements StitchToolClientSpec {
         const isRetryable =
           retry !== null &&
           err instanceof StitchError &&
-          err.code === "RATE_LIMITED";
+          (err.code === "RATE_LIMITED" || err.code === "SERVICE_UNAVAILABLE");
         if (!isRetryable || attempt >= maxAttempts - 1) throw err;
-        debugLog("retry", `RATE_LIMITED on ${name}; backing off`, {
+        debugLog("retry", `${err.code} on ${name}; backing off`, {
           attempt: attempt + 1,
           maxAttempts,
         });
-        await sleep(computeBackoffMs(attempt, retry.baseMs, retry.maxMs));
+        const backoffMs = computeBackoffMs(attempt, retry.baseMs, retry.maxMs);
+        const delayMs = Math.max(backoffMs, err.retryAfter ?? 0);
+        await sleep(delayMs);
       }
     }
   }

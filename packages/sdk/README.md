@@ -125,11 +125,11 @@ All tool responses and input parameters are strictly typed and exported from the
 
 The root class. Manages projects.
 
-| Method                 | Parameters      | Returns              | Description                             |
-| ---------------------- | --------------- | -------------------- | --------------------------------------- |
-| `createProject(options?)` | `options?: { title?: string }` | `Promise<Project>` | Create a new project              |
-| `projects()`           | —               | `Promise<Project[]>` | List all accessible projects            |
-| `project(id)`          | `id: string`    | `Project`            | Reference a project by ID (no API call) |
+| Method                    | Parameters                     | Returns              | Description                             |
+| ------------------------- | ------------------------------ | -------------------- | --------------------------------------- |
+| `createProject(options?)` | `options?: { title?: string }` | `Promise<Project>`   | Create a new project                    |
+| `projects()`              | —                              | `Promise<Project[]>` | List all accessible projects            |
+| `project(id)`             | `id: string`                   | `Project`            | Reference a project by ID (no API call) |
 
 ### `Project`
 
@@ -140,11 +140,11 @@ A Stitch project containing screens.
 | `id`        | `string` | Alias for `projectId`                   |
 | `projectId` | `string` | Bare project ID (no `projects/` prefix) |
 
-| Method                          | Parameters                                  | Returns             | Description                          |
-| ------------------------------- | ------------------------------------------- | ------------------- | ------------------------------------ |
+| Method                       | Parameters                                              | Returns                       | Description                                     |
+| ---------------------------- | ------------------------------------------------------- | ----------------------------- | ----------------------------------------------- |
 | `generate(prompt, options?)` | `prompt: string`, `options?: { deviceType?, modelId? }` | `Promise<Generation<Screen>>` | Generate screens — `.screens`, `.first`, `.raw` |
-| `screens()`                     | —                                           | `Promise<Screen[]>` | List all screens in the project      |
-| `getScreen(screenId)`           | `screenId: string`                          | `Promise<Screen>`   | Retrieve a specific screen by ID     |
+| `screens()`                  | —                                                       | `Promise<Screen[]>`           | List all screens in the project                 |
+| `getScreen(screenId)`        | `screenId: string`                                      | `Promise<Screen>`             | Retrieve a specific screen by ID                |
 
 `DeviceType`: `"MOBILE"` \| `"DESKTOP"` \| `"TABLET"` \| `"AGNOSTIC"`
 
@@ -158,13 +158,13 @@ A generated UI screen. Provides access to HTML and screenshots.
 | `screenId`  | `string` | Bare screen ID       |
 | `projectId` | `string` | Parent project ID    |
 
-| Method                                                    | Parameters                                 | Returns             | Description                              |
-| --------------------------------------------------------- | ------------------------------------------ | ------------------- | ---------------------------------------- |
-| `edit(prompt, options?)`                     | `prompt: string`, `options?: { deviceType?, modelId? }`                   | `Promise<Generation<Screen>>` | Edit the screen — `.screens`, `.first`, `.raw` |
-| `variants(prompt, variantOptions, options?)` | `prompt: string`, `variantOptions: VariantOptions`, `options?: { deviceType?, modelId? }` | `Promise<Generation<Screen>>` | Generate design variants                 |
-| `getHtml()`                                               | —                                          | `Promise<string>`     | Fetch the screen's HTML content          |
-| `getImage()`                                              | —                                          | `Promise<Uint8Array>` | Fetch the screenshot bytes               |
-| `getHtmlUrl()` / `getImageUrl()`                          | —                                          | `Promise<string>`     | Signed download URLs (cache-aware)       |
+| Method                                       | Parameters                                                                                | Returns                       | Description                                    |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------- |
+| `edit(prompt, options?)`                     | `prompt: string`, `options?: { deviceType?, modelId? }`                                   | `Promise<Generation<Screen>>` | Edit the screen — `.screens`, `.first`, `.raw` |
+| `variants(prompt, variantOptions, options?)` | `prompt: string`, `variantOptions: VariantOptions`, `options?: { deviceType?, modelId? }` | `Promise<Generation<Screen>>` | Generate design variants                       |
+| `getHtml()`                                  | —                                                                                         | `Promise<string>`             | Fetch the screen's HTML content                |
+| `getImage()`                                 | —                                                                                         | `Promise<Uint8Array>`         | Fetch the screenshot bytes                     |
+| `getHtmlUrl()` / `getImageUrl()`             | —                                                                                         | `Promise<string>`             | Signed download URLs (cache-aware)             |
 
 URL accessors use cached data from the generation response when available, write fetched responses back to the cache, and throw `StitchError` `NOT_FOUND` for missing artifacts (never a silent empty string).
 

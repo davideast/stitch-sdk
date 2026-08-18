@@ -27,8 +27,8 @@ Gates: validate ✓ check:skills ✓ smoke ✓ bundle ✓ build ✓ 323/323 unit
 
 STAGE D COMPLETE
 
-
 ## Diffstat
+
 ```
  scripts/generate-sdk.ts                           |  2 +-
  scripts/ir-schema.ts                              |  6 ++

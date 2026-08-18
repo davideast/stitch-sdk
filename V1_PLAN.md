@@ -18,18 +18,18 @@ Rule for the whole plan: **every breaking change lands in Phase 3, in one batch,
 
 These are the choices everything downstream depends on. Decide once, write them at the top of the migration guide.
 
-| #   | Decision                                                                                                                                                  | Default recommendation                                                              |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------| ----------------------------------------------------------------------------------- |
-| D1  | `project.generate()` / `screen.edit()` return shape                                                                                                      | `Generation` result object: `{ screens: Screen[], primary: Screen, raw }`           |
-| D2  | `getHtml()` / `getImage()` semantics                                                                                                                      | Fetch content; add `getHtmlUrl()` / `getImageUrl()` for the URL                     |
-| D3  | Entity construction                                                                                                                                       | Constructors `protected`; `EntityManager.resolve` is the only path; factories stay  |
-| D4  | Entity `data` typing                                                                                                                                      | Generated per-entity interfaces; `data?: ScreenData` etc., no `any`                 |
-| D5  | Config/env contract                                                                                                                                       | One schema: `STITCH_API_KEY`, `STITCH_ACCESS_TOKEN`, `STITCH_BASE_URL`, `STITCH_PROJECT_ID` (alias `GOOGLE_CLOUD_PROJECT` kept, documented) |
-| D6  | Retry policy                                                                                                                                              | Built-in exponential backoff for `RATE_LIMITED` (configurable, max 3, jitter)       |
-| D7  | AI SDK coupling                                                                                                                                           | `ai` becomes optional peer dep; use `dynamicTool()`/`jsonSchema()`; delete symbol forgery |
-| D8  | ADK coupling                                                                                                                                              | `@google/adk` optional peer dep with clear install error                            |
-| D9  | MCP stack                                                                                                                                                 | Single stack: proxy + capture run through `StitchToolClient` (real MCP SDK)         |
-| D10 | IR dead features (`ProjectionStep.fallback`, `ArgParam.default`, `FieldMappingSpec`)                                                                      | Implement `default`; delete `fallback` + `FieldMappingSpec`; IR schema goes strict  |
+| #   | Decision                                                                             | Default recommendation                                                                                                                      |
+| --- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | `project.generate()` / `screen.edit()` return shape                                  | `Generation` result object: `{ screens: Screen[], primary: Screen, raw }`                                                                   |
+| D2  | `getHtml()` / `getImage()` semantics                                                 | Fetch content; add `getHtmlUrl()` / `getImageUrl()` for the URL                                                                             |
+| D3  | Entity construction                                                                  | Constructors `protected`; `EntityManager.resolve` is the only path; factories stay                                                          |
+| D4  | Entity `data` typing                                                                 | Generated per-entity interfaces; `data?: ScreenData` etc., no `any`                                                                         |
+| D5  | Config/env contract                                                                  | One schema: `STITCH_API_KEY`, `STITCH_ACCESS_TOKEN`, `STITCH_BASE_URL`, `STITCH_PROJECT_ID` (alias `GOOGLE_CLOUD_PROJECT` kept, documented) |
+| D6  | Retry policy                                                                         | Built-in exponential backoff for `RATE_LIMITED` (configurable, max 3, jitter)                                                               |
+| D7  | AI SDK coupling                                                                      | `ai` becomes optional peer dep; use `dynamicTool()`/`jsonSchema()`; delete symbol forgery                                                   |
+| D8  | ADK coupling                                                                         | `@google/adk` optional peer dep with clear install error                                                                                    |
+| D9  | MCP stack                                                                            | Single stack: proxy + capture run through `StitchToolClient` (real MCP SDK)                                                                 |
+| D10 | IR dead features (`ProjectionStep.fallback`, `ArgParam.default`, `FieldMappingSpec`) | Implement `default`; delete `fallback` + `FieldMappingSpec`; IR schema goes strict                                                          |
 
 ---
 
@@ -145,7 +145,7 @@ Exit criteria Phase 1: snapshot suite green in CI; regenerating twice in a row p
 ### 2.3 Retry/backoff (D6)
 
 - [ ] `callTool` + `httpPost`: on `RATE_LIMITED` (and 503), exponential backoff with jitter, default 3 attempts, honor `Retry-After`. Config: `retry: { attempts, baseMs, maxMs } | false` in `StitchConfigSchema`.
-- [ ] `recoverable` flag documented: "the SDK already retried; recoverable means *you* may retry the operation."
+- [ ] `recoverable` flag documented: "the SDK already retried; recoverable means _you_ may retry the operation."
 - [ ] Tests with fake timers: backoff schedule, Retry-After honored, non-recoverable codes never retried.
 
 ### 2.4 Connection lifecycle
@@ -252,7 +252,7 @@ Exit criteria Phase 3: `1.0.0-rc.0` published to a dist-tag; example suite (`pac
 - [ ] `stitch-sdk-usage`, `stitch-sdk-readme`, `stitch-sdk-development`, `stitch-sdk-domain-design` updated against the 1.0 surface (constructor sealing, Generation results, content-vs-URL methods, config/env table, error codes).
 - [ ] README: AI SDK + ADK install instructions show peer deps; migration guide linked.
 
-1.0 ship gates (all must be green): CI full matrix · validate:generated · coverage thresholds · publish-readiness · e2e (incl. multi-screen generation assertion) · examples run · migration guide reviewed.
+  1.0 ship gates (all must be green): CI full matrix · validate:generated · coverage thresholds · publish-readiness · e2e (incl. multi-screen generation assertion) · examples run · migration guide reviewed.
 
 ---
 
@@ -304,4 +304,4 @@ Outcome of a pre-mortem pass over this plan. Each amendment supersedes the origi
 - **Server schema churn invalidates IR work mid-plan** — highest-likelihood risk. Mitigation is 1.7's drift early-warning + keeping Phase 3 IR changes small. If `outputComponents` restructures again, re-run Stage 2 before continuing Phase 3.
 - **MCP tool errors are text-only** — the "status-code-first" error mapper only improves `httpPost`; `callTool` classification stays substring-based. Push the server team for structured error content; don't promise more than the protocol carries.
 - **rc soak may get zero external feedback** (few consumers). Gates are self-referential. Mitigation: run the examples suite + both adapters against the rc in a clean consumer project as a mandatory gate; recruit at least one internal consumer.
-- **Solo-maintainer timeline:** the week labels assume parallel workstreams that one person cannot run. Treat phase *ordering* as the contract, not the weeks. Cut line for 1.0 if needed: Phase 3.6 adapter rewrites and 3.8 can slip to 1.1 (additive); D1/D2/D3/exports cannot.
+- **Solo-maintainer timeline:** the week labels assume parallel workstreams that one person cannot run. Treat phase _ordering_ as the contract, not the weeks. Cut line for 1.0 if needed: Phase 3.6 adapter rewrites and 3.8 can slip to 1.1 (additive); D1/D2/D3/exports cannot.

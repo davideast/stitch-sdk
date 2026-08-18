@@ -21,8 +21,8 @@
 
 Gates: validate ✓ build ✓ 201/201 unit ✓ 81/81 scripts ✓ tsc ✓
 
-
 ## Diffstat
+
 ```
  packages/sdk/src/entity-manager.ts            | 104 ++++++++-----
  packages/sdk/test/unit/entity-manager.test.ts | 205 ++++++++++++++++++++++++--

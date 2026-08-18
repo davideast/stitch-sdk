@@ -19,9 +19,9 @@ import { stitchTools, validateIncludeFilter } from "../../src/tools-adapter.js";
 
 describe("stitchTools (Vercel AI SDK adapter)", () => {
   it("throws on unknown include names instead of silently dropping them", () => {
-    expect(() => validateIncludeFilter(["create_project", "nope_tool"])).toThrow(
-      /nope_tool/,
-    );
+    expect(() =>
+      validateIncludeFilter(["create_project", "nope_tool"]),
+    ).toThrow(/nope_tool/);
     expect(() =>
       stitchTools({ apiKey: "k", include: ["definitely_not_a_tool"] }),
     ).toThrow(/Available tools/);
