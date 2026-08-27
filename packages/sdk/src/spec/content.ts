@@ -21,7 +21,11 @@ export const FetchArtifactInputSchema = z.object({
 
 export type FetchArtifactInput = z.input<typeof FetchArtifactInputSchema>;
 
-export const FetchArtifactErrorCode = z.enum(["NOT_FOUND", "NETWORK_ERROR"]);
+export const FetchArtifactErrorCode = z.enum([
+  "NOT_FOUND",
+  "NETWORK_ERROR",
+  "VALIDATION_ERROR",
+]);
 
 export type FetchArtifactErrorCode = z.infer<typeof FetchArtifactErrorCode>;
 

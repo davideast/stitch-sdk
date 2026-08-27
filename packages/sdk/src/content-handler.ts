@@ -23,7 +23,18 @@ export class ScreenContentHandler implements ScreenContentHandlerSpec {
   async fetchArtifact(
     input: FetchArtifactInput,
   ): Promise<FetchArtifactResult<Response>> {
-    const { url, label } = FetchArtifactInputSchema.parse(input);
+    const parsed = FetchArtifactInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: `Invalid fetch input: ${parsed.error.message}`,
+          recoverable: false,
+        },
+      };
+    }
+    const { url, label } = parsed.data;
     let res: Response;
     try {
       res = await fetch(url);
