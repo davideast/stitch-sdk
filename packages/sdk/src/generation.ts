@@ -72,6 +72,29 @@ export class Generation<TItem = Screen, TRaw = unknown> {
         }
         return false;
       },
+      ownKeys(target) {
+        const keys = new Set<string | symbol>(Reflect.ownKeys(target));
+        if (target.first && typeof target.first === "object") {
+          for (const k of Reflect.ownKeys(target.first as object)) {
+            if (k !== "client") keys.add(k);
+          }
+        }
+        return Array.from(keys);
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        const own = Reflect.getOwnPropertyDescriptor(target, prop);
+        if (own) return own;
+        if (target.first && typeof target.first === "object") {
+          const firstDesc = Reflect.getOwnPropertyDescriptor(
+            target.first as object,
+            prop,
+          );
+          if (firstDesc) {
+            return { ...firstDesc, configurable: true };
+          }
+        }
+        return undefined;
+      },
     });
   }
 

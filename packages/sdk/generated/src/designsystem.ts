@@ -64,11 +64,35 @@ export class DesignSystem {
     data: any,
   ) {
     this.data = typeof data === "object" && data !== null ? data : undefined;
+    const _rawName =
+      typeof data === "string"
+        ? data
+        : typeof data?.name === "string"
+          ? data.name
+          : "";
+    if (_rawName.includes("/")) {
+      const _parts = _rawName.split("/");
+      for (let _i = 0; _i < _parts.length - 1; _i += 2) {
+        const _k =
+          (_parts[_i].endsWith("s") ? _parts[_i].slice(0, -1) : _parts[_i]) +
+          "Id";
+        (this as any)[_k] = _parts[_i + 1];
+      }
+    }
+
     if (typeof data === "string") {
-      (this as any).assetId = data;
+      if (!(this as any).assetId)
+        (this as any).assetId = data.includes("/")
+          ? data.split("/").pop()!
+          : data;
     } else if (typeof data === "object" && data !== null) {
       if (data.projectId) (this as any).projectId = data.projectId;
       if (data.assetId) (this as any).assetId = data.assetId;
+      if (!(this as any).assetId && data.id) (this as any).assetId = data.id;
+      if (!(this as any).assetId && typeof data.name === "string")
+        (this as any).assetId = data.name.includes("/")
+          ? data.name.split("/").pop()!
+          : data.name;
     }
   }
 

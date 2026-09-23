@@ -203,11 +203,17 @@ export class EntityManager {
    * Disposes of a specific entity.
    */
   dispose(entity: any) {
+    if (!entity) return;
+    if (Array.isArray(entity.screens)) {
+      for (const s of entity.screens) {
+        if (s !== entity) this.dispose(s);
+      }
+    }
     if (typeof entity.onDispose === "function") {
       entity.onDispose();
     }
     for (const [key, val] of this.cache.entries()) {
-      if (val === entity) {
+      if (val === entity || (entity.first && val === entity.first)) {
         this.cache.delete(key);
         break;
       }

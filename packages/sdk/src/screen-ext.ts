@@ -32,6 +32,20 @@ import type { ScreenContentSpec } from "./spec/content.js";
 import { ScreenContentHandler } from "./content-handler.js";
 
 export class Screen extends GeneratedScreen implements ScreenContentSpec {
+  static [Symbol.hasInstance](instance: unknown): boolean {
+    if (!instance || typeof instance !== "object") return false;
+    if (Function.prototype[Symbol.hasInstance].call(this, instance)) return true;
+    const first = (instance as any).first;
+    if (
+      Array.isArray((instance as any).screens) &&
+      first &&
+      Function.prototype[Symbol.hasInstance].call(this, first)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Get the signed download URL for the screen's HTML.
    * @deprecated Use getHtmlUrl() to get the URL, or readHtml() to fetch HTML content.

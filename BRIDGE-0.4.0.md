@@ -72,3 +72,25 @@ await stitch.createProject({ title: "My App" });
 
 ### 6. Permissive Entity Data Typing
 `entity.data` is typed with permissive index signatures (`[key: string]: any;`), providing autocomplete for modeled properties without breaking arbitrary property access with `unknown`.
+
+---
+
+## Risk Mitigations (Pre-Mortem)
+
+### Tigers Addressed:
+1. **Direct Entity Construction Hydration across Resource Names & Multi-Segment IDs** (`severity: high`)
+   - **Mitigation**: Updated `buildConstructorBody` in `scripts/generate-sdk.ts` to parse multi-segment resource names (`projects/p-1/screens/s-2`), prefixed names (`projects/123`), MCP `{ name: "projects/123" }` payloads, `{ id: "456" }` fallbacks, and explicit key fields.
+   - **Proof / Regression Test**: `packages/sdk/test/unit/bridge-0.4.0-premortem.test.ts` (`Tiger 1: Direct Entity Construction Hydration` — 6 assertions).
+2. **`Generation` Proxy Runtime `instanceof Screen`, Object Spread (`{ ...screen }`), and `EntityManager.dispose(screen)`** (`severity: high`)
+   - **Mitigation**: Added `static [Symbol.hasInstance]` on `Screen` (`packages/sdk/src/screen-ext.ts`), added `ownKeys` and `getOwnPropertyDescriptor` Proxy traps on `Generation` (`packages/sdk/src/generation.ts`), and updated `EntityManager.dispose` (`packages/sdk/src/entity-manager.ts`) to unwrap `Generation.screens` / `Generation.first`.
+   - **Proof / Regression Test**: `packages/sdk/test/unit/bridge-0.4.0-premortem.test.ts` (`Tiger 2: Generation Proxy instanceof, Spread, and EntityManager.dispose` — 3 assertions).
+
+### Accepted Risks / Elephants:
+1. **`stitch.toolMap` Property on Singleton Instance** (`severity: medium`) — Accepted because keeping `stitch.toolMap` off the `stitch` singleton prevents eager-loading the ~40 KB tool catalog into the 30 KB core bundle (`npm run check:bundle`). Callers needing `toolMap` can use the root export `import { toolMap } from "@google/stitch-sdk"` or `@google/stitch-sdk/tools`.
+
+### Pre-Mortem Run:
+- **Date**: `2026-09-23`
+- **Mode**: `deep`
+- **Tigers**: `2 (2 addressed & verified with Red → Green regression tests)`
+- **Elephants**: `1 (documented)`
+

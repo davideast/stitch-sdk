@@ -738,22 +738,40 @@ function buildConstructorBody(
   config: ReturnType<typeof DomainMap.parse>["classes"][string],
 ): string[] {
   const statements: string[] = [];
+  const params = config.constructorParams || [];
+  const lastParam = params[params.length - 1];
   statements.push(
     `this.data = typeof data === "object" && data !== null ? data : undefined;`,
   );
-  statements.push(`if (typeof data === "string") {`);
-  if (config.constructorParams && config.constructorParams.length > 0) {
-    const lastParam =
-      config.constructorParams[config.constructorParams.length - 1];
-    statements.push(`  (this as any).${lastParam} = data;`);
-  }
-  statements.push(`} else if (typeof data === "object" && data !== null) {`);
-  if (config.constructorParams) {
-    for (const p of config.constructorParams) {
+  if (params.length > 0) {
+    statements.push(
+      `const _rawName = typeof data === "string" ? data : (typeof data?.name === "string" ? data.name : "");`,
+    );
+    statements.push(`if (_rawName.includes("/")) {`);
+    statements.push(`  const _parts = _rawName.split("/");`);
+    statements.push(`  for (let _i = 0; _i < _parts.length - 1; _i += 2) {`);
+    statements.push(
+      `    const _k = (_parts[_i].endsWith("s") ? _parts[_i].slice(0, -1) : _parts[_i]) + "Id";`,
+    );
+    statements.push(`    (this as any)[_k] = _parts[_i + 1];`);
+    statements.push(`  }`);
+    statements.push(`}`);
+    statements.push(`if (typeof data === "string") {`);
+    statements.push(
+      `  if (!(this as any).${lastParam}) (this as any).${lastParam} = data.includes("/") ? data.split("/").pop()! : data;`,
+    );
+    statements.push(`} else if (typeof data === "object" && data !== null) {`);
+    for (const p of params) {
       statements.push(`  if (data.${p}) (this as any).${p} = data.${p};`);
     }
+    statements.push(
+      `  if (!(this as any).${lastParam} && data.id) (this as any).${lastParam} = data.id;`,
+    );
+    statements.push(
+      `  if (!(this as any).${lastParam} && typeof data.name === "string") (this as any).${lastParam} = data.name.includes("/") ? data.name.split("/").pop()! : data.name;`,
+    );
+    statements.push(`}`);
   }
-  statements.push(`}`);
   return statements;
 }
 
