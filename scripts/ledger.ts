@@ -75,7 +75,11 @@ function resolveLedgerDir(): string | null {
     const underDotLedger = path.resolve(REPO_ROOT, ".ledger", targetDirArg);
     if (fs.existsSync(underDotLedger)) return underDotLedger;
 
-    const underIgnored = path.resolve(REPO_ROOT, "ignored/.ledger", targetDirArg);
+    const underIgnored = path.resolve(
+      REPO_ROOT,
+      "ignored/.ledger",
+      targetDirArg,
+    );
     if (fs.existsSync(underIgnored)) return underIgnored;
 
     return directPath;
@@ -90,9 +94,14 @@ function resolveLedgerDir(): string | null {
     if (!fs.existsSync(base)) continue;
 
     // Check if base itself has issue json files
-    const directFiles = fs.readdirSync(base).filter(
-      (f) => f.endsWith(".json") && !f.endsWith(".fixed.json") && f !== "rules.json"
-    );
+    const directFiles = fs
+      .readdirSync(base)
+      .filter(
+        (f) =>
+          f.endsWith(".json") &&
+          !f.endsWith(".fixed.json") &&
+          f !== "rules.json",
+      );
     if (directFiles.length > 0) return base;
 
     // Check for child subdirectories (batches)
@@ -111,10 +120,16 @@ function resolveLedgerDir(): string | null {
   return null;
 }
 
-export function runOracle(issue: IssueLedgerEntry): { passed: boolean; failureReasons: string[] } {
+export function runOracle(issue: IssueLedgerEntry): {
+  passed: boolean;
+  failureReasons: string[];
+} {
   const targetPath = path.join(REPO_ROOT, issue.target.file);
   if (!fs.existsSync(targetPath)) {
-    return { passed: false, failureReasons: [`Target file not found: ${issue.target.file}`] };
+    return {
+      passed: false,
+      failureReasons: [`Target file not found: ${issue.target.file}`],
+    };
   }
 
   const primaryContent = fs.readFileSync(targetPath, "utf8");
@@ -131,14 +146,18 @@ export function runOracle(issue: IssueLedgerEntry): { passed: boolean; failureRe
 
   for (const forbidden of issue.oracle.forbiddenPatterns) {
     if (combinedContent.includes(forbidden)) {
-      failureReasons.push(`Forbidden pattern '${forbidden}' is still present in ${issue.target.file}`);
+      failureReasons.push(
+        `Forbidden pattern '${forbidden}' is still present in ${issue.target.file}`,
+      );
     }
   }
 
   if (issue.oracle.requiredPatterns) {
     for (const required of issue.oracle.requiredPatterns) {
       if (!combinedContent.includes(required)) {
-        failureReasons.push(`Required pattern '${required}' is missing from ${issue.target.file}`);
+        failureReasons.push(
+          `Required pattern '${required}' is missing from ${issue.target.file}`,
+        );
       }
     }
   }
@@ -157,7 +176,8 @@ function scaffoldInit() {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: ".ledger/rules.json",
       title: "Standing Architectural Rules & Ledger Schema",
-      description: "Standing rules and verification contracts governing codebase refactors and issues.",
+      description:
+        "Standing rules and verification contracts governing codebase refactors and issues.",
       type: "object",
       required: ["id", "title", "rule", "target", "violation", "oracle"],
       properties: {
@@ -171,8 +191,8 @@ function scaffoldInit() {
             "NO_BOOLEAN_COERCION_CHAINS",
             "STORE_CENTRALIZATION_NO_BYPASS",
             "ELIMINATE_DEAD_CODE",
-            "ATOMIC_FILE_OPERATIONS"
-          ]
+            "ATOMIC_FILE_OPERATIONS",
+          ],
         },
         target: {
           type: "object",
@@ -186,18 +206,18 @@ function scaffoldInit() {
               properties: {
                 contextBefore: { type: "string" },
                 targetSnippet: { type: "string" },
-                contextAfter: { type: "string" }
-              }
-            }
-          }
+                contextAfter: { type: "string" },
+              },
+            },
+          },
         },
         violation: {
           type: "object",
           required: ["problem", "expectedSolution"],
           properties: {
             problem: { type: "string" },
-            expectedSolution: { type: "string" }
-          }
+            expectedSolution: { type: "string" },
+          },
         },
         oracle: {
           type: "object",
@@ -205,29 +225,35 @@ function scaffoldInit() {
           properties: {
             type: { type: "string", enum: ["invariants", "ast", "unit_test"] },
             forbiddenPatterns: { type: "array", items: { type: "string" } },
-            requiredPatterns: { type: "array", items: { type: "string" } }
-          }
-        }
+            requiredPatterns: { type: "array", items: { type: "string" } },
+          },
+        },
       },
       $defs: {
         standingRules: {
           NO_SILENT_ERROR_SWALLOWING: {
             id: "NO_SILENT_ERROR_SWALLOWING",
-            summary: "Catch blocks must log, rethrow, or handle errors explicitly.",
+            summary:
+              "Catch blocks must log, rethrow, or handle errors explicitly.",
             antiPatterns: ["catch {}", "catch (_) {}"],
-            remediation: "Handle expected errors explicitly or rethrow with contextual error wrapping."
+            remediation:
+              "Handle expected errors explicitly or rethrow with contextual error wrapping.",
           },
           REQUIRE_NAMED_BOOLEANS: {
             id: "REQUIRE_NAMED_BOOLEANS",
-            summary: "Replace nested or compound conditions with self-documenting const is... booleans.",
+            summary:
+              "Replace nested or compound conditions with self-documenting const is... booleans.",
             antiPatterns: ["if (a && b || !c && d)"],
-            remediation: "Extract compound expressions into named const booleans."
-          }
-        }
-      }
+            remediation:
+              "Extract compound expressions into named const booleans.",
+          },
+        },
+      },
     };
     fs.writeFileSync(rulesPath, JSON.stringify(defaultRules, null, 2), "utf8");
-    console.log(`✅ Created default rules at ${path.relative(REPO_ROOT, rulesPath)}`);
+    console.log(
+      `✅ Created default rules at ${path.relative(REPO_ROOT, rulesPath)}`,
+    );
   }
 
   const sampleIssuePath = path.join(defaultBatch, "01-sample-issue.json");
@@ -239,24 +265,35 @@ function scaffoldInit() {
       rule: "REQUIRE_NAMED_BOOLEANS",
       target: {
         file: "README.md",
-        enclosingSymbol: "root"
+        enclosingSymbol: "root",
       },
       violation: {
-        problem: "Sample problem description demonstrating mechanical verification.",
-        expectedSolution: "Sample solution asserting required file content."
+        problem:
+          "Sample problem description demonstrating mechanical verification.",
+        expectedSolution: "Sample solution asserting required file content.",
       },
       oracle: {
         type: "invariants",
         forbiddenPatterns: ["TODO_FORBIDDEN_STRING"],
-        requiredPatterns: []
-      }
+        requiredPatterns: [],
+      },
     };
-    fs.writeFileSync(sampleIssuePath, JSON.stringify(sampleIssue, null, 2), "utf8");
-    console.log(`✅ Created sample issue at ${path.relative(REPO_ROOT, sampleIssuePath)}`);
+    fs.writeFileSync(
+      sampleIssuePath,
+      JSON.stringify(sampleIssue, null, 2),
+      "utf8",
+    );
+    console.log(
+      `✅ Created sample issue at ${path.relative(REPO_ROOT, sampleIssuePath)}`,
+    );
   }
 
-  console.log(`\n🎉 Ledger initialized at ${path.relative(REPO_ROOT, defaultBatch)}`);
-  console.log(`Run: bun scripts/ledger.ts --dir=${path.relative(REPO_ROOT, defaultBatch)}`);
+  console.log(
+    `\n🎉 Ledger initialized at ${path.relative(REPO_ROOT, defaultBatch)}`,
+  );
+  console.log(
+    `Run: bun scripts/ledger.ts --dir=${path.relative(REPO_ROOT, defaultBatch)}`,
+  );
 }
 
 function main() {
@@ -268,7 +305,9 @@ function main() {
   const ledgerDir = resolveLedgerDir();
   if (!ledgerDir || !fs.existsSync(ledgerDir)) {
     console.error("❌ Ledger directory not found.");
-    console.error("Provide a directory with --dir=<path> or initialize with --init:");
+    console.error(
+      "Provide a directory with --dir=<path> or initialize with --init:",
+    );
     console.error("  bun scripts/ledger.ts --init");
     process.exit(1);
   }
@@ -276,7 +315,8 @@ function main() {
   const shouldWriteReceipts = process.argv.includes("--commit-fixes");
   const allFiles = fs.readdirSync(ledgerDir);
   const issueFiles = allFiles.filter(
-    (f) => f.endsWith(".json") && !f.endsWith(".fixed.json") && f !== "rules.json"
+    (f) =>
+      f.endsWith(".json") && !f.endsWith(".fixed.json") && f !== "rules.json",
   );
 
   if (issueFiles.length === 0) {
@@ -296,7 +336,9 @@ function main() {
   for (const filename of issueFiles.sort()) {
     const fullPath = path.join(ledgerDir, filename);
     const fixedPath = fullPath.replace(/\.json$/, ".fixed.json");
-    const issueData = JSON.parse(fs.readFileSync(fullPath, "utf8")) as IssueLedgerEntry;
+    const issueData = JSON.parse(
+      fs.readFileSync(fullPath, "utf8"),
+    ) as IssueLedgerEntry;
 
     const oracleResult = runOracle(issueData);
 
@@ -313,14 +355,14 @@ function main() {
             oracleType: issueData.oracle.type,
             forbiddenPatternsAbsent: issueData.oracle.forbiddenPatterns,
             requiredPatternsPresent: issueData.oracle.requiredPatterns,
-            verifiedBy: "scripts/ledger.ts"
-          }
+            verifiedBy: "scripts/ledger.ts",
+          },
         };
         try {
           const fd = fs.openSync(
             fixedPath,
             fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY,
-            0o600
+            0o600,
           );
           fs.writeFileSync(fd, JSON.stringify(receipt, null, 2), "utf8");
           fs.closeSync(fd);
@@ -337,14 +379,18 @@ function main() {
       fixedCount++;
       console.log(` ✅ [FIXED]     ${issueData.id}`);
       console.log(`    File:       ${issueData.target.file}`);
-      console.log(`    Proof:      All forbidden patterns absent & required patterns verified\n`);
+      console.log(
+        `    Proof:      All forbidden patterns absent & required patterns verified\n`,
+      );
     } else {
       const hasFixedReceipt = fs.existsSync(fixedPath);
       if (hasFixedReceipt) {
         regressedCount++;
         console.log(` ⚠️  [REGRESSED] ${issueData.id}`);
         console.log(`    File:       ${issueData.target.file}`);
-        console.log(`    Errors:     ${oracleResult.failureReasons.join("; ")}\n`);
+        console.log(
+          `    Errors:     ${oracleResult.failureReasons.join("; ")}\n`,
+        );
       } else {
         openCount++;
         console.log(` ❌ [OPEN]      ${issueData.id}`);
@@ -362,7 +408,9 @@ function main() {
 
   console.log("--------------------------------------------------------");
   console.log(` Progress: [${bar}] ${pct}% (${fixedCount}/${total} resolved)`);
-  console.log(` Summary:  ${fixedCount} Fixed | ${openCount} Open | ${regressedCount} Regressed`);
+  console.log(
+    ` Summary:  ${fixedCount} Fixed | ${openCount} Open | ${regressedCount} Regressed`,
+  );
   console.log("--------------------------------------------------------\n");
 
   if (openCount > 0 || regressedCount > 0) {

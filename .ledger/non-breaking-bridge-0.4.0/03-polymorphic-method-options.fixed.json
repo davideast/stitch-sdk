@@ -10,9 +10,7 @@
     "forbiddenPatternsAbsent": [
       "name: \"options\",\n      type: `{ ${optional.map((o) => `${o.name}?: ${o.type}`).join(\"; \")} }`,"
     ],
-    "requiredPatternsPresent": [
-      "OrOptions"
-    ],
+    "requiredPatternsPresent": ["OrOptions"],
     "verifiedBy": "scripts/ledger.ts"
   }
 }

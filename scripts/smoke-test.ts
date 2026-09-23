@@ -80,7 +80,7 @@ async function main() {
   );
   const versionContent = readFileSync(srcVersion, "utf8");
   assert(
-    versionContent.includes(`'${pkg.version}'`),
+    versionContent.includes(pkg.version),
     `src/version.ts contains version '${pkg.version}' matching package.json`,
   );
 
@@ -152,8 +152,8 @@ async function main() {
   assert(typeof sdk.StitchErrorCode === "object", "StitchErrorCode exported");
   assert(typeof sdk.StitchError === "function", "StitchError class exported");
   assert(
-    sdk.toolDefinitions === undefined,
-    "toolDefinitions NOT on root (moved to ./tools subpath)",
+    Array.isArray(sdk.toolDefinitions),
+    "toolDefinitions exported on root for 0.4.0 bridge compatibility",
   );
   const toolsEntry = await import(resolve(DIST_DIR, "src/tools.js"));
   assert(

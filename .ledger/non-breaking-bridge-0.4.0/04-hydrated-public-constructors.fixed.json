@@ -7,12 +7,8 @@
   "enclosingSymbol": "main",
   "verification": {
     "oracleType": "invariants",
-    "forbiddenPatternsAbsent": [
-      "scope: Scope.Protected,"
-    ],
-    "requiredPatternsPresent": [
-      "@deprecated"
-    ],
+    "forbiddenPatternsAbsent": ["scope: Scope.Protected,"],
+    "requiredPatternsPresent": ["@deprecated"],
     "verifiedBy": "scripts/ledger.ts"
   }
 }

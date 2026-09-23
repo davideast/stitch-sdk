@@ -19,11 +19,7 @@
   },
   "oracle": {
     "type": "invariants",
-    "forbiddenPatterns": [
-      "[key: string]: unknown;"
-    ],
-    "requiredPatterns": [
-      "[key: string]: any;"
-    ]
+    "forbiddenPatterns": ["[key: string]: unknown;"],
+    "requiredPatterns": ["[key: string]: any;"]
   }
 }

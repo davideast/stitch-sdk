@@ -21,8 +21,6 @@
     "forbiddenPatterns": [
       "name: \"options\",\n      type: `{ ${optional.map((o) => `${o.name}?: ${o.type}`).join(\"; \")} }`,"
     ],
-    "requiredPatterns": [
-      "OrOptions"
-    ]
+    "requiredPatterns": ["OrOptions"]
   }
 }

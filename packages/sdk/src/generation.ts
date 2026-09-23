@@ -31,8 +31,7 @@ import type { Screen } from "./screen-ext.js";
  * and iteration for multi-screen code.
  */
 export interface Generation<TItem = Screen, TRaw = unknown>
-  extends Screen,
-    Iterable<TItem> {}
+  extends Screen, Iterable<TItem> {}
 
 export class Generation<TItem = Screen, TRaw = unknown> {
   // Constructed only by generated methods, which throw on an empty response
@@ -52,7 +51,9 @@ export class Generation<TItem = Screen, TRaw = unknown> {
         }
         if (target.first && typeof target.first === "object") {
           const val = Reflect.get(target.first as any, prop);
-          return typeof val === "function" ? (val as any).bind(target.first) : val;
+          return typeof val === "function"
+            ? (val as any).bind(target.first)
+            : val;
         }
         return undefined;
       },

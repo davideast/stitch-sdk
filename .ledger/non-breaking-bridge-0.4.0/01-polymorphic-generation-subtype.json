@@ -21,8 +21,6 @@
     "forbiddenPatterns": [
       "export class Generation<TItem, TRaw = unknown> implements Iterable<TItem> {"
     ],
-    "requiredPatterns": [
-      "extends Screen"
-    ]
+    "requiredPatterns": ["extends Screen"]
   }
 }

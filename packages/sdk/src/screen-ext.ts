@@ -34,7 +34,8 @@ import { ScreenContentHandler } from "./content-handler.js";
 export class Screen extends GeneratedScreen implements ScreenContentSpec {
   static [Symbol.hasInstance](instance: unknown): boolean {
     if (!instance || typeof instance !== "object") return false;
-    if (Function.prototype[Symbol.hasInstance].call(this, instance)) return true;
+    if (Function.prototype[Symbol.hasInstance].call(this, instance))
+      return true;
     const first = (instance as any).first;
     if (
       Array.isArray((instance as any).screens) &&

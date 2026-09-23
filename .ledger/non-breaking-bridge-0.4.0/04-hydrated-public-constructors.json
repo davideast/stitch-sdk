@@ -19,11 +19,7 @@
   },
   "oracle": {
     "type": "invariants",
-    "forbiddenPatterns": [
-      "scope: Scope.Protected,"
-    ],
-    "requiredPatterns": [
-      "@deprecated"
-    ]
+    "forbiddenPatterns": ["scope: Scope.Protected,"],
+    "requiredPatterns": ["@deprecated"]
   }
 }

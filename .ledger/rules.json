@@ -4,14 +4,7 @@
   "title": "Standing Architectural Rules & Ledger Schema",
   "description": "Standing architectural rules and mechanical verification contracts governing the Stitch SDK non-breaking bridge.",
   "type": "object",
-  "required": [
-    "id",
-    "title",
-    "rule",
-    "target",
-    "violation",
-    "oracle"
-  ],
+  "required": ["id", "title", "rule", "target", "violation", "oracle"],
   "properties": {
     "id": {
       "type": "string",
@@ -37,9 +30,7 @@
     },
     "target": {
       "type": "object",
-      "required": [
-        "file"
-      ],
+      "required": ["file"],
       "properties": {
         "file": {
           "type": "string"
@@ -68,10 +59,7 @@
     },
     "violation": {
       "type": "object",
-      "required": [
-        "problem",
-        "expectedSolution"
-      ],
+      "required": ["problem", "expectedSolution"],
       "properties": {
         "problem": {
           "type": "string"
@@ -83,18 +71,11 @@
     },
     "oracle": {
       "type": "object",
-      "required": [
-        "type",
-        "forbiddenPatterns"
-      ],
+      "required": ["type", "forbiddenPatterns"],
       "properties": {
         "type": {
           "type": "string",
-          "enum": [
-            "invariants",
-            "ast",
-            "unit_test"
-          ]
+          "enum": ["invariants", "ast", "unit_test"]
         },
         "forbiddenPatterns": {
           "type": "array",

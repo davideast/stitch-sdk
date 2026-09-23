@@ -10,9 +10,7 @@
     "forbiddenPatternsAbsent": [
       "export class Generation<TItem, TRaw = unknown> implements Iterable<TItem> {"
     ],
-    "requiredPatternsPresent": [
-      "extends Screen"
-    ],
+    "requiredPatternsPresent": ["extends Screen"],
     "verifiedBy": "scripts/ledger.ts"
   }
 }

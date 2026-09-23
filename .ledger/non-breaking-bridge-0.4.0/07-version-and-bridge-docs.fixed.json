@@ -7,12 +7,8 @@
   "enclosingSymbol": "root",
   "verification": {
     "oracleType": "invariants",
-    "forbiddenPatternsAbsent": [
-      "\"version\": \"0.5.0\""
-    ],
-    "requiredPatternsPresent": [
-      "\"version\": \"0.4.0\""
-    ],
+    "forbiddenPatternsAbsent": ["\"version\": \"0.5.0\""],
+    "requiredPatternsPresent": ["\"version\": \"0.4.0\""],
     "verifiedBy": "scripts/ledger.ts"
   }
 }
