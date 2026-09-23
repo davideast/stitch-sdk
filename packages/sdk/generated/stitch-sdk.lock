@@ -16,7 +16,7 @@
     "bindingCount": 15
   },
   "manifest": {
-    "capturedAt": "2026-09-23T18:35:57.430Z",
+    "capturedAt": "2026-09-23T18:42:56.588Z",
     "sourceHash": "sha256:88ec3dfa066ce5060be236b0a5c0b5fb51671a7dd60d05556c028e6c4c8f0e1c",
     "toolCount": 15,
     "serverUrl": "https://stitch.googleapis.com/mcp"
