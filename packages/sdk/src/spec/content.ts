@@ -60,18 +60,26 @@ export interface ScreenContentHandlerSpec {
  */
 export interface ScreenContentSpec {
   /**
-   * Fetch the screen's HTML content.
-   * @throws StitchError NOT_FOUND when the screen has no HTML artifact,
-   *         NETWORK_ERROR when the signed URL fetch fails.
+   * Get the signed download URL for the screen's HTML.
+   * @deprecated Use getHtmlUrl() or readHtml().
    */
   getHtml(): Promise<string>;
 
   /**
-   * Fetch the screen's screenshot bytes (typically PNG).
-   * @throws StitchError NOT_FOUND when the screen has no screenshot,
-   *         NETWORK_ERROR when the signed URL fetch fails.
+   * Get the signed download URL for the screen's screenshot.
+   * @deprecated Use getImageUrl() or readImage().
    */
-  getImage(): Promise<Uint8Array>;
+  getImage(): Promise<string>;
+
+  /**
+   * Fetch the screen's HTML content as a string.
+   */
+  readHtml(): Promise<string>;
+
+  /**
+   * Fetch the screen's screenshot image bytes (typically PNG).
+   */
+  readImage(): Promise<Uint8Array>;
 
   /** Typed accessor for the screen's display title (from cached data). */
   readonly title: string | undefined;

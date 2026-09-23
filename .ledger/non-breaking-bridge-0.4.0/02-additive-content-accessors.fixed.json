@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "issueId": "additive-content-accessors",
+  "status": "VERIFIED_FIXED",
+  "fixedAt": "2026-09-23T17:22:16.849Z",
+  "file": "packages/sdk/src/screen-ext.ts",
+  "enclosingSymbol": "Screen",
+  "verification": {
+    "oracleType": "invariants",
+    "forbiddenPatternsAbsent": [
+      "async getImage(): Promise<Uint8Array> {",
+      "label: `HTML for screen ${this.screenId}`"
+    ],
+    "requiredPatternsPresent": [
+      "async readHtml(): Promise<string>",
+      "async readImage(): Promise<Uint8Array>"
+    ],
+    "verifiedBy": "scripts/ledger.ts"
+  }
+}

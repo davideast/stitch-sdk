@@ -1,0 +1,29 @@
+{
+  "$schema": "../rules.json",
+  "id": "permissive-entity-data-type",
+  "title": "Use permissive index signatures on entity data interfaces to prevent TS2571 unknown errors",
+  "rule": "NON_BREAKING_TYPE_INTERSECTIONS",
+  "target": {
+    "file": "scripts/generate-sdk.ts",
+    "secondaryFile": "packages/sdk/generated/src/types.generated.ts",
+    "enclosingSymbol": "emitDataInterfaces",
+    "anchor": {
+      "contextBefore": "export interface ScreenData {",
+      "targetSnippet": "  [key: string]: unknown;",
+      "contextAfter": "}"
+    }
+  },
+  "violation": {
+    "problem": "Typing the index signature as `[key: string]: unknown;` causes existing code accessing unmodeled entity properties (e.g. screen.data.something) to fail with TS2571: Object is of type 'unknown'.",
+    "expectedSolution": "Type index signatures on entity data interfaces with `any` (`[key: string]: any;`), preserving TypeScript autocomplete on modeled fields while allowing existing code to access properties without compile errors."
+  },
+  "oracle": {
+    "type": "invariants",
+    "forbiddenPatterns": [
+      "[key: string]: unknown;"
+    ],
+    "requiredPatterns": [
+      "[key: string]: any;"
+    ]
+  }
+}

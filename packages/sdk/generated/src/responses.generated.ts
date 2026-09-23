@@ -33,7 +33,7 @@ import {
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:d83380431b4d...)
+        domain-map.json     (sha256:a6177cc7e2f4...)
  */
 
 /** Response message for create_project. */

@@ -36,8 +36,9 @@ export { StitchError, StitchErrorCode } from "./spec/errors.js";
 // Resource name utilities
 export { parseResourceName } from "./utils.js";
 
-// Tool catalog moved to "@google/stitch-sdk/tools" [V1_PLAN §3.8]:
-// the definitions are ~2K lines of JSON the root bundle shouldn't carry.
+// Tool catalog (re-exported with deprecation for 0.4.0 bridge; preferred subpath is @google/stitch-sdk/tools)
+/** @deprecated Import from "@google/stitch-sdk/tools" to optimize bundle size. */
+export { toolDefinitions, toolMap } from "./tools.js";
 
 // Types (config + data interfaces)
 export type { StitchConfig, StitchConfigInput } from "./spec/client.js";

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "issueId": "version-and-bridge-docs",
+  "status": "VERIFIED_FIXED",
+  "fixedAt": "2026-09-23T17:25:25.608Z",
+  "file": "packages/sdk/package.json",
+  "enclosingSymbol": "root",
+  "verification": {
+    "oracleType": "invariants",
+    "forbiddenPatternsAbsent": [
+      "\"version\": \"0.5.0\""
+    ],
+    "requiredPatternsPresent": [
+      "\"version\": \"0.4.0\""
+    ],
+    "verifiedBy": "scripts/ledger.ts"
+  }
+}

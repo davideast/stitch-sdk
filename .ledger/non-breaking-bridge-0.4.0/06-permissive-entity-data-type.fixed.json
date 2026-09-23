@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "issueId": "permissive-entity-data-type",
+  "status": "VERIFIED_FIXED",
+  "fixedAt": "2026-09-23T17:24:29.826Z",
+  "file": "scripts/generate-sdk.ts",
+  "enclosingSymbol": "emitDataInterfaces",
+  "verification": {
+    "oracleType": "invariants",
+    "forbiddenPatternsAbsent": [
+      "[key: string]: unknown;"
+    ],
+    "requiredPatternsPresent": [
+      "[key: string]: any;"
+    ],
+    "verifiedBy": "scripts/ledger.ts"
+  }
+}

@@ -387,7 +387,7 @@ describe("generateMethodParams", () => {
     ]);
   });
 
-  test("required params stay positional, optional params fold into trailing options object (D12)", () => {
+  test("required params stay positional, optional params fold into polymorphic options parameter", () => {
     const tool: any = {
       name: "generate_screen_from_text",
       inputSchema: {
@@ -408,8 +408,13 @@ describe("generateMethodParams", () => {
     expect(result).toEqual([
       { name: "prompt", type: "string", hasQuestionToken: false },
       {
-        name: "options",
-        type: '{ deviceType?: "MOBILE" | "DESKTOP"; modelId?: string }',
+        name: "deviceTypeOrOptions",
+        type: '"MOBILE" | "DESKTOP" | { deviceType?: "MOBILE" | "DESKTOP"; modelId?: string }',
+        hasQuestionToken: true,
+      },
+      {
+        name: "modelId",
+        type: "string",
         hasQuestionToken: true,
       },
     ]);
@@ -427,7 +432,7 @@ describe("generateMethodParams", () => {
     ]);
   });
 
-  test("only optional params → single options param", () => {
+  test("only optional params → polymorphic options param", () => {
     const tool: any = {
       name: "create_project",
       inputSchema: { properties: { title: { type: "string" } } },
@@ -436,8 +441,8 @@ describe("generateMethodParams", () => {
     const result = generateMethodParams(tool, args as any);
     expect(result).toEqual([
       {
-        name: "options",
-        type: "{ title?: string }",
+        name: "titleOrOptions",
+        type: "string | { title?: string }",
         hasQuestionToken: true,
       },
     ]);
@@ -456,7 +461,8 @@ describe("generateMethodParams", () => {
       },
     };
     const result = generateMethodParams(tool, args as any);
-    expect(result[0].type).toBe("{ deviceType?: string }");
+    expect(result[0].name).toBe("deviceTypeOrOptions");
+    expect(result[0].type).toBe("string | { deviceType?: string }");
   });
 
   test("required param named 'options' alongside optional params throws", () => {

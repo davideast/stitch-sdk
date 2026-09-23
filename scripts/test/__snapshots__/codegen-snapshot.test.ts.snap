@@ -23,10 +23,18 @@ export class Root {
    * Creates a gizmo.
    * Tool: create_gizmo
    */
-  async createGizmo(options?: {
-    title?: string;
-    labels?: Record<string, string>;
-  }): Promise<Gizmo> {
+  async createGizmo(
+    titleOrOptions?:
+      | string
+      | { title?: string; labels?: Record<string, string> },
+    labels?: Record<string, string>,
+  ): Promise<Gizmo> {
+    const options =
+      typeof titleOrOptions === "object" &&
+      titleOrOptions !== null &&
+      !Array.isArray(titleOrOptions)
+        ? titleOrOptions
+        : { title: titleOrOptions, labels: labels };
     try {
       const raw = await this.client.callTool<CreateGizmoResponse>(
         "create_gizmo",
@@ -91,20 +99,17 @@ export class Gizmo {
     return this.data?.title;
   }
 
-  protected constructor(
+  /** @deprecated Use factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances. */
+  public constructor(
     private client: StitchToolClientSpec,
     data: any,
   ) {
+    this.data = typeof data === "object" && data !== null ? data : undefined;
     if (typeof data === "string") {
-      throw new StitchError({
-        code: "VALIDATION_ERROR",
-        message:
-          "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.",
-        recoverable: false,
-      });
+      (this as any).gizmoId = data;
+    } else if (typeof data === "object" && data !== null) {
+      if (data.gizmoId) (this as any).gizmoId = data.gizmoId;
     }
-
-    this.data = typeof data === "object" ? data : undefined;
   }
 
   /** Convenience alias for gizmoId */
@@ -146,8 +151,14 @@ export class Gizmo {
    */
   async spawnFirst(
     prompt: string,
-    options?: { mode?: "FAST" | "SLOW" },
+    modeOrOptions?: "FAST" | "SLOW" | { mode?: "FAST" | "SLOW" },
   ): Promise<Widget> {
+    const options =
+      typeof modeOrOptions === "object" &&
+      modeOrOptions !== null &&
+      !Array.isArray(modeOrOptions)
+        ? modeOrOptions
+        : { mode: modeOrOptions };
     try {
       const raw = await this.client.callTool<SpawnWidgetsResponse>(
         "spawn_widgets",
@@ -209,20 +220,18 @@ export class Widget {
     return this.data?.title;
   }
 
-  protected constructor(
+  /** @deprecated Use factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances. */
+  public constructor(
     private client: StitchToolClientSpec,
     data: any,
   ) {
+    this.data = typeof data === "object" && data !== null ? data : undefined;
     if (typeof data === "string") {
-      throw new StitchError({
-        code: "VALIDATION_ERROR",
-        message:
-          "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.",
-        recoverable: false,
-      });
+      (this as any).widgetId = data;
+    } else if (typeof data === "object" && data !== null) {
+      if (data.gizmoId) (this as any).gizmoId = data.gizmoId;
+      if (data.widgetId) (this as any).widgetId = data.widgetId;
     }
-
-    this.data = typeof data === "object" ? data : undefined;
   }
 
   /** Convenience alias for widgetId */
@@ -236,8 +245,14 @@ export class Widget {
    */
   async spawnAll(
     prompt: string,
-    options?: { spawnMode?: "FAST" | "SLOW" },
+    spawnModeOrOptions?: "FAST" | "SLOW" | { spawnMode?: "FAST" | "SLOW" },
   ): Promise<Generation<Widget, SpawnWidgetsResponse>> {
+    const options =
+      typeof spawnModeOrOptions === "object" &&
+      spawnModeOrOptions !== null &&
+      !Array.isArray(spawnModeOrOptions)
+        ? spawnModeOrOptions
+        : { spawnMode: spawnModeOrOptions };
     try {
       const raw = await this.client.callTool<SpawnWidgetsResponse>(
         "spawn_widgets",
@@ -308,7 +323,7 @@ export interface GizmoData {
   name?: string;
   title?: string;
   displayName?: string;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 /** Cached data interface for Widget [V1_PLAN D4]. */
@@ -316,7 +331,7 @@ export interface WidgetData {
   name?: string;
   title?: string;
   displayName?: string;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 "
 `;

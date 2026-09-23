@@ -1,0 +1,28 @@
+{
+  "$schema": "../rules.json",
+  "id": "polymorphic-generation-subtype",
+  "title": "Generation container must extend or proxy Screen to preserve Promise<Screen> compatibility",
+  "rule": "DUCK_TYPED_RESULT_CONTAINERS",
+  "target": {
+    "file": "packages/sdk/src/generation.ts",
+    "enclosingSymbol": "Generation",
+    "anchor": {
+      "contextBefore": "export class Generation<TItem, TRaw = unknown> implements Iterable<TItem> {",
+      "targetSnippet": "export class Generation<TItem, TRaw = unknown> implements Iterable<TItem> {",
+      "contextAfter": "constructor(\n    public readonly screens: readonly TItem[],\n    public readonly raw: TRaw,\n  ) {}"
+    }
+  },
+  "violation": {
+    "problem": "Generation is a standalone container with no inheritance or property forwarding to Screen. Callers expecting Promise<Screen> fail TypeScript compilation and runtime property accesses (e.g. screen.id, screen.title, screen.getHtml(), screen.edit()).",
+    "expectedSolution": "Make Generation extend Screen (or proxy Screen properties to this.first) so it is assignable to Screen and preserves 100% backward compatibility for single-screen consumers while offering .screens and iteration for multi-screen consumers."
+  },
+  "oracle": {
+    "type": "invariants",
+    "forbiddenPatterns": [
+      "export class Generation<TItem, TRaw = unknown> implements Iterable<TItem> {"
+    ],
+    "requiredPatterns": [
+      "extends Screen"
+    ]
+  }
+}

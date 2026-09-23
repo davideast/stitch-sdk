@@ -593,11 +593,20 @@ export function generateMethodParams(
           `Use "rename" in domain-map.json to rename it.`,
       );
     }
+    const primaryOpt = optional[0];
+    const optionsObjType = `{ ${optional.map((o) => `${o.name}?: ${o.type}`).join("; ")} }`;
     positional.push({
-      name: "options",
-      type: `{ ${optional.map((o) => `${o.name}?: ${o.type}`).join("; ")} }`,
+      name: `${primaryOpt.name}OrOptions`,
+      type: `${primaryOpt.type} | ${optionsObjType}`,
       hasQuestionToken: true,
     });
+    for (let i = 1; i < optional.length; i++) {
+      positional.push({
+        name: optional[i].name,
+        type: optional[i].type,
+        hasQuestionToken: true,
+      });
+    }
   }
   return positional;
 }
@@ -729,15 +738,22 @@ function buildConstructorBody(
   config: ReturnType<typeof DomainMap.parse>["classes"][string],
 ): string[] {
   const statements: string[] = [];
-  // Direct construction with a string ID silently produced instances with
-  // undefined reference keys (post-#358). Fail loudly with the supported
-  // alternative instead. EntityManager never passes strings here.
-  statements.push(`if (typeof data === "string") {`);
   statements.push(
-    `  throw new StitchError({ code: "VALIDATION_ERROR", message: "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.", recoverable: false });`,
+    `this.data = typeof data === "object" && data !== null ? data : undefined;`,
   );
+  statements.push(`if (typeof data === "string") {`);
+  if (config.constructorParams && config.constructorParams.length > 0) {
+    const lastParam =
+      config.constructorParams[config.constructorParams.length - 1];
+    statements.push(`  (this as any).${lastParam} = data;`);
+  }
+  statements.push(`} else if (typeof data === "object" && data !== null) {`);
+  if (config.constructorParams) {
+    for (const p of config.constructorParams) {
+      statements.push(`  if (data.${p}) (this as any).${p} = data.${p};`);
+    }
+  }
   statements.push(`}`);
-  statements.push(`this.data = typeof data === "object" ? data : undefined;`);
   return statements;
 }
 
@@ -749,6 +765,22 @@ function buildMethodBody(
   domainMap: ReturnType<typeof DomainMap.parse>,
 ): string[] {
   const statements: string[] = [];
+
+  const optionalParams: string[] = [];
+  for (const [name, spec] of Object.entries(binding.args)) {
+    if (spec.from === "param" && spec.optional) {
+      optionalParams.push(spec.rename || name);
+    }
+  }
+  if (optionalParams.length > 0) {
+    const primary = optionalParams[0];
+    const subsequent = optionalParams.slice(1);
+    const subsequentFields = subsequent.map((p) => `${p}: ${p}`).join(", ");
+    const subsequentPart = subsequentFields ? `, ${subsequentFields}` : "";
+    statements.push(
+      `const options = typeof ${primary}OrOptions === "object" && ${primary}OrOptions !== null && !Array.isArray(${primary}OrOptions) ? ${primary}OrOptions : { ${primary}: ${primary}OrOptions${subsequentPart} };`,
+    );
+  }
 
   // Cache check
   if (binding.cache) {
@@ -958,7 +990,7 @@ async function main() {
             `  thumbnailScreenshot?: ThumbnailScreenshot;\n` +
             `  designTheme?: DesignTheme;\n` +
             `  screenInstances?: ScreenInstance[];\n` +
-            `  [key: string]: unknown;\n` +
+            `  [key: string]: any;\n` +
             `}`,
         );
       } else if (className === "Screen") {
@@ -969,7 +1001,7 @@ async function main() {
             `  title?: string;\n` +
             `  htmlCode?: File;\n` +
             `  screenshot?: File;\n` +
-            `  [key: string]: unknown;\n` +
+            `  [key: string]: any;\n` +
             `}`,
         );
       } else {
@@ -979,7 +1011,7 @@ async function main() {
             `  name?: string;\n` +
             `  title?: string;\n` +
             `  displayName?: string;\n` +
-            `  [key: string]: unknown;\n` +
+            `  [key: string]: any;\n` +
             `}`,
         );
       }
@@ -1185,10 +1217,13 @@ async function main() {
       });
 
       cls.addConstructor({
-        // SEALED (V1_PLAN §3.3): entities are constructed ONLY by the
-        // EntityManager (which hydrates reference keys and dedupes).
-        // Public path: factories + method returns.
-        scope: Scope.Protected,
+        scope: Scope.Public,
+        docs: [
+          {
+            description:
+              "@deprecated Use factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.",
+          },
+        ],
         parameters: [
           { name: "client", type: "StitchToolClientSpec", scope: clientScope },
           { name: "data", type: "any" },

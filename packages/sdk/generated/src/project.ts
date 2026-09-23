@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:d83380431b4d...)
+        domain-map.json     (sha256:a6177cc7e2f4...)
  */
 import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
@@ -63,20 +63,17 @@ export class Project {
     return this.data?.title;
   }
 
-  protected constructor(
+  /** @deprecated Use factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances. */
+  public constructor(
     protected client: StitchToolClientSpec,
     data: any,
   ) {
+    this.data = typeof data === "object" && data !== null ? data : undefined;
     if (typeof data === "string") {
-      throw new StitchError({
-        code: "VALIDATION_ERROR",
-        message:
-          "Direct construction from a string ID is not supported. Use the factory methods (e.g. stitch.project(id), project.screen(id)), which return identity-mapped instances.",
-        recoverable: false,
-      });
+      (this as any).projectId = data;
+    } else if (typeof data === "object" && data !== null) {
+      if (data.projectId) (this as any).projectId = data.projectId;
     }
-
-    this.data = typeof data === "object" ? data : undefined;
   }
 
   /** Convenience alias for projectId */
@@ -90,20 +87,37 @@ export class Project {
    */
   async generate(
     prompt: string,
-    options?: {
-      deviceType?:
-        | "DEVICE_TYPE_UNSPECIFIED"
-        | "MOBILE"
-        | "DESKTOP"
-        | "TABLET"
-        | "AGNOSTIC";
-      modelId?:
-        | "MODEL_ID_UNSPECIFIED"
-        | "GEMINI_3_PRO"
-        | "GEMINI_3_FLASH"
-        | "GEMINI_3_1_PRO";
-    },
+    deviceTypeOrOptions?:
+      | "DEVICE_TYPE_UNSPECIFIED"
+      | "MOBILE"
+      | "DESKTOP"
+      | "TABLET"
+      | "AGNOSTIC"
+      | {
+          deviceType?:
+            | "DEVICE_TYPE_UNSPECIFIED"
+            | "MOBILE"
+            | "DESKTOP"
+            | "TABLET"
+            | "AGNOSTIC";
+          modelId?:
+            | "MODEL_ID_UNSPECIFIED"
+            | "GEMINI_3_PRO"
+            | "GEMINI_3_FLASH"
+            | "GEMINI_3_1_PRO";
+        },
+    modelId?:
+      | "MODEL_ID_UNSPECIFIED"
+      | "GEMINI_3_PRO"
+      | "GEMINI_3_FLASH"
+      | "GEMINI_3_1_PRO",
   ): Promise<Generation<Screen, GenerateScreenFromTextResponse>> {
+    const options =
+      typeof deviceTypeOrOptions === "object" &&
+      deviceTypeOrOptions !== null &&
+      !Array.isArray(deviceTypeOrOptions)
+        ? deviceTypeOrOptions
+        : { deviceType: deviceTypeOrOptions, modelId: modelId };
     try {
       const raw = await this.client.callTool<GenerateScreenFromTextResponse>(
         "generate_screen_from_text",
@@ -245,15 +259,27 @@ export class Project {
    */
   async createDesignSystemFromDesignMd(
     selectedScreenInstance: SelectedScreenInstance,
-    options?: {
-      deviceType?:
-        | "DEVICE_TYPE_UNSPECIFIED"
-        | "MOBILE"
-        | "DESKTOP"
-        | "TABLET"
-        | "AGNOSTIC";
-    },
+    deviceTypeOrOptions?:
+      | "DEVICE_TYPE_UNSPECIFIED"
+      | "MOBILE"
+      | "DESKTOP"
+      | "TABLET"
+      | "AGNOSTIC"
+      | {
+          deviceType?:
+            | "DEVICE_TYPE_UNSPECIFIED"
+            | "MOBILE"
+            | "DESKTOP"
+            | "TABLET"
+            | "AGNOSTIC";
+        },
   ): Promise<DesignSystem> {
+    const options =
+      typeof deviceTypeOrOptions === "object" &&
+      deviceTypeOrOptions !== null &&
+      !Array.isArray(deviceTypeOrOptions)
+        ? deviceTypeOrOptions
+        : { deviceType: deviceTypeOrOptions };
     try {
       const raw =
         await this.client.callTool<CreateDesignSystemFromDesignMdResponse>(

@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:d83380431b4d...)
+        domain-map.json     (sha256:a6177cc7e2f4...)
  */
 
 /** A component style token in a design system. */
@@ -655,7 +655,7 @@ export interface ProjectData {
   thumbnailScreenshot?: ThumbnailScreenshot;
   designTheme?: DesignTheme;
   screenInstances?: ScreenInstance[];
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 /** Cached data interface for Screen [V1_PLAN D4]. */
@@ -664,7 +664,7 @@ export interface ScreenData {
   title?: string;
   htmlCode?: File;
   screenshot?: File;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 /** Cached data interface for DesignSystem [V1_PLAN D4]. */
@@ -672,5 +672,5 @@ export interface DesignSystemData {
   name?: string;
   title?: string;
   displayName?: string;
-  [key: string]: unknown;
+  [key: string]: any;
 }

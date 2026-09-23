@@ -42,8 +42,10 @@ export async function surface(): Promise<void> {
   const gen: Generation<Screen, unknown> = await project.generate("a page", {
     deviceType: "MOBILE",
   });
-  const html: string = await gen.first.getHtml();
-  const png: Uint8Array = await gen.first.getImage();
+  const html: string = await gen.first.readHtml();
+  const htmlUrl: string = await gen.first.getHtml();
+  const png: Uint8Array = await gen.first.readImage();
+  const pngUrl: string = await gen.first.getImage();
   const url: string = await gen.first.getHtmlUrl();
 
   const edited = await gen.first.edit("darker");

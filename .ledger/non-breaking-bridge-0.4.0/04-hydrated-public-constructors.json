@@ -1,0 +1,29 @@
+{
+  "$schema": "../rules.json",
+  "id": "hydrated-public-constructors",
+  "title": "Restore hydrating public entity constructors with deprecation notice instead of protected",
+  "rule": "PUBLIC_CONSTRUCTOR_HYDRATION",
+  "target": {
+    "file": "scripts/generate-sdk.ts",
+    "secondaryFile": "packages/sdk/generated/src/project.ts",
+    "enclosingSymbol": "main",
+    "anchor": {
+      "contextBefore": "cls.addConstructor({",
+      "targetSnippet": "scope: Scope.Protected,",
+      "contextAfter": "parameters: ["
+    }
+  },
+  "violation": {
+    "problem": "Entity constructors were sealed to protected scope in codegen, causing TypeScript compilation errors on existing code using `new Project(client, id)` or `new Screen(client, id)`.",
+    "expectedSolution": "Restore public constructor visibility, properly hydrate entity identity from string ID or data object, register with the client identity map, and mark with @deprecated pointing to factory methods."
+  },
+  "oracle": {
+    "type": "invariants",
+    "forbiddenPatterns": [
+      "scope: Scope.Protected,"
+    ],
+    "requiredPatterns": [
+      "@deprecated"
+    ]
+  }
+}

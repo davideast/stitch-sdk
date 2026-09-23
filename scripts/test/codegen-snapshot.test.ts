@@ -110,6 +110,10 @@ beforeAll(() => {
     join(sandbox, "src", "generation.ts"),
     readFileSync(resolve(ROOT_DIR, "packages/sdk/src/generation.ts"), "utf-8"),
   );
+  writeFileSync(
+    join(sandbox, "src", "screen-ext.ts"),
+    "export interface Screen { [key: string]: any; }\n",
+  );
 
   const result = Bun.spawnSync(["bun", join(SCRIPTS_DIR, "generate-sdk.ts")], {
     cwd: ROOT_DIR,
@@ -365,10 +369,11 @@ describe("fixture output behavior", () => {
     expect(widget.gizmoId).toBe("g-5");
   });
 
-  test("constructors reject string data with an actionable error", async () => {
+  test("constructors accept string data and hydrate id for backward compatibility", async () => {
     const { Gizmo } = await import(join(outDir, "gizmo.ts"));
     const client = makeFakeClient();
-    expect(() => new Gizmo(client, "g-1")).toThrow(/factory methods/);
+    const gizmo = new Gizmo(client, "g-1");
+    expect(gizmo.gizmoId).toBe("g-1");
   });
 
   test("static entityKey is emitted on every non-root class", async () => {

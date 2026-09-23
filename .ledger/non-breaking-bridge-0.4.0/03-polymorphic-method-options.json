@@ -1,0 +1,28 @@
+{
+  "$schema": "../rules.json",
+  "id": "polymorphic-method-options",
+  "title": "Support legacy positional parameters alongside trailing options objects in codegen",
+  "rule": "POLYMORPHIC_ARGUMENT_ROUTING",
+  "target": {
+    "file": "scripts/generate-sdk.ts",
+    "enclosingSymbol": "generateMethodParams",
+    "anchor": {
+      "contextBefore": "export function generateMethodParams(",
+      "targetSnippet": "positional.push({\n      name: \"options\",\n      type: `{ ${optional.map((o) => `${o.name}?: ${o.type}`).join(\"; \")} }`,\n      hasQuestionToken: true,\n    });",
+      "contextAfter": "return positional;"
+    }
+  },
+  "violation": {
+    "problem": "Codegen exclusively groups optional parameters into a trailing options object (e.g. generate(prompt, options?: { deviceType?: ... })), breaking 0.x positional invocations like generate(prompt, 'MOBILE') or createProject('Title').",
+    "expectedSolution": "Emit polymorphic signatures or overloads that accept either the legacy positional arguments or the trailing options object (e.g. deviceTypeOrOptions?: DeviceType | GenerateOptions), normalizing to the tool arguments object at runtime."
+  },
+  "oracle": {
+    "type": "invariants",
+    "forbiddenPatterns": [
+      "name: \"options\",\n      type: `{ ${optional.map((o) => `${o.name}?: ${o.type}`).join(\"; \")} }`,"
+    ],
+    "requiredPatterns": [
+      "OrOptions"
+    ]
+  }
+}

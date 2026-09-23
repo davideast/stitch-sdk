@@ -47,8 +47,18 @@ function cachedScreen(): Screen {
   });
 }
 
-describe("Screen content methods (D2: names promise content)", () => {
-  it("getHtml fetches and returns the HTML CONTENT, not the URL", async () => {
+describe("Screen content methods (0.4.0 bridge: readHtml/readImage fetch content; getHtml/getImage return URLs)", () => {
+  it("getHtml returns the signed URL for 0.x backward compatibility", async () => {
+    const url = await cachedScreen().getHtml();
+    expect(url).toBe("https://files.example/s-1.html");
+  });
+
+  it("getImage returns the signed URL for 0.x backward compatibility", async () => {
+    const url = await cachedScreen().getImage();
+    expect(url).toBe("https://files.example/s-1.png");
+  });
+
+  it("readHtml fetches and returns the HTML CONTENT, not the URL", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -57,13 +67,13 @@ describe("Screen content methods (D2: names promise content)", () => {
       }),
     );
 
-    const html = await cachedScreen().getHtml();
+    const html = await cachedScreen().readHtml();
     expect(html).toBe("<html>real content</html>");
     expect(client.callTool).not.toHaveBeenCalled(); // URL from cache
     expect(fetch).toHaveBeenCalledWith("https://files.example/s-1.html");
   });
 
-  it("getImage returns the screenshot bytes", async () => {
+  it("readImage returns the screenshot bytes", async () => {
     const bytes = new Uint8Array([137, 80, 78, 71]);
     vi.stubGlobal(
       "fetch",
@@ -73,7 +83,7 @@ describe("Screen content methods (D2: names promise content)", () => {
       }),
     );
 
-    const png = await cachedScreen().getImage();
+    const png = await cachedScreen().readImage();
     expect(png).toBeInstanceOf(Uint8Array);
     expect([...png]).toEqual([137, 80, 78, 71]);
   });
@@ -85,7 +95,7 @@ describe("Screen content methods (D2: names promise content)", () => {
     );
 
     const err = await cachedScreen()
-      .getHtml()
+      .readHtml()
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(StitchError);
     expect((err as StitchError).code).toBe("NETWORK_ERROR");
@@ -98,7 +108,7 @@ describe("Screen content methods (D2: names promise content)", () => {
       vi.fn().mockResolvedValue({ ok: false, status: 404 }),
     );
     const err = await cachedScreen()
-      .getImage()
+      .readImage()
       .catch((e: unknown) => e);
     expect((err as StitchError).code).toBe("NOT_FOUND");
   });

@@ -59,6 +59,16 @@
           "method": "getImage",
           "reason": "binary_data",
           "specPath": "src/spec/content.ts"
+        },
+        {
+          "method": "readHtml",
+          "reason": "binary_data",
+          "specPath": "src/spec/content.ts"
+        },
+        {
+          "method": "readImage",
+          "reason": "binary_data",
+          "specPath": "src/spec/content.ts"
         }
       ],
       "publicInterface": {

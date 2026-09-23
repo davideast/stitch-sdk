@@ -3,7 +3,7 @@
 DO NOT EDIT — changes will be overwritten.
 
 Source: tools-manifest.json (sha256:f20f91d571a1...)
-        domain-map.json     (sha256:d83380431b4d...)
+        domain-map.json     (sha256:a6177cc7e2f4...)
  */
 import { type StitchToolClientSpec } from "../../src/spec/client.js";
 import { StitchError } from "../../src/spec/errors.js";
@@ -69,7 +69,15 @@ export class Stitch {
    * Creates a new Stitch project. A project is a container for UI designs and frontend code.
    * Tool: create_project
    */
-  async createProject(options?: { title?: string }): Promise<Project> {
+  async createProject(
+    titleOrOptions?: string | { title?: string },
+  ): Promise<Project> {
+    const options =
+      typeof titleOrOptions === "object" &&
+      titleOrOptions !== null &&
+      !Array.isArray(titleOrOptions)
+        ? titleOrOptions
+        : { title: titleOrOptions };
     try {
       const raw = await this.client.callTool<CreateProjectResponse>(
         "create_project",
