@@ -168,7 +168,7 @@ A generated UI screen. Provides access to HTML and screenshots.
 
 URL accessors use cached data from the generation response when available, write fetched responses back to the cache, and throw `StitchError` `NOT_FOUND` for missing artifacts (never a silent empty string).
 
-`modelId`: `"GEMINI_3_PRO"` \| `"GEMINI_3_FLASH"`
+`modelId`: `"GEMINI_3_8_FLASH"` \| `"GEMINI_3_5_FLASH_LITE"` (optional, defaults to backend default)
 
 ### `StitchToolClient`
 

@@ -234,7 +234,7 @@ Error codes: `AUTH_FAILED`, `NOT_FOUND`, `PERMISSION_DENIED`, `RATE_LIMITED`, `N
 | `edit(prompt, options?)`                     | `Promise<Generation<Screen>>` | Edit the screen using a text prompt |
 | `variants(prompt, variantOptions, options?)` | `Promise<Generation<Screen>>` | Generate variants of the screen     |
 
-`modelId`: `"GEMINI_3_PRO"` | `"GEMINI_3_FLASH"`
+`modelId`: `"GEMINI_3_8_FLASH"` | `"GEMINI_3_5_FLASH_LITE"` (optional, defaults to backend default)
 
 ### StitchToolClient (for agents)
 

@@ -574,7 +574,11 @@ export function generateMethodParams(
     const paramName = spec.rename || name;
     const toolProp = tool.inputSchema?.properties?.[name];
     const defs = tool.inputSchema?.$defs;
-    const tsType = jsonSchemaToTs(toolProp, defs, namedTypes);
+    const tsType = toolProp
+      ? jsonSchemaToTs(toolProp, defs, namedTypes)
+      : name.endsWith("Id")
+        ? "string"
+        : "any";
     if (spec.optional) {
       optional.push({ name: paramName, type: tsType });
     } else {
