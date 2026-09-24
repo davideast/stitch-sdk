@@ -30,7 +30,13 @@
  */
 
 import { resolve } from "node:path";
-import { existsSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { execSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import assert from "node:assert";
@@ -40,6 +46,19 @@ const SDK_DIR = resolve(ROOT_DIR, "packages/sdk");
 
 let passed = 0;
 let failed = 0;
+
+// Artifacts to remove even when a check throws mid-way (stale tarballs
+// previously survived failures and poisoned the next run).
+const cleanupPaths: string[] = [];
+process.on("exit", () => {
+  for (const p of cleanupPaths) {
+    try {
+      rmSync(p, { recursive: true, force: true });
+    } catch {
+      /* best effort */
+    }
+  }
+});
 
 function check(name: string, fn: () => void) {
   try {
@@ -93,6 +112,67 @@ if (pkg.exports) {
   }
 }
 
+// ── 2b. publint (packaging lint) ────────────────────────────────────────────
+console.log("\n🔎 publint");
+check("publint reports no packaging errors", () => {
+  try {
+    execSync("npx publint", { cwd: SDK_DIR, stdio: "pipe", encoding: "utf8" });
+  } catch (e: any) {
+    assert.fail(`publint failed:\n${e.stdout?.toString() || e.message}`);
+  }
+});
+
+check("lock validation passes (validate:generated)", () => {
+  try {
+    execSync("bun scripts/validate-generated.ts", {
+      cwd: ROOT_DIR,
+      stdio: "pipe",
+      encoding: "utf8",
+    });
+  } catch (e: any) {
+    assert.fail(
+      `validate-generated failed:\n${e.stdout?.toString() || e.message}`,
+    );
+  }
+});
+
+check("root/sdk versions in sync", () => {
+  try {
+    execSync("bun scripts/sync-versions.ts --check", {
+      cwd: ROOT_DIR,
+      stdio: "pipe",
+      encoding: "utf8",
+    });
+  } catch (e: any) {
+    assert.fail(
+      `version sync check failed:\n${e.stderr?.toString() || e.message}`,
+    );
+  }
+});
+
+check("version is valid semver", () => {
+  assert(
+    /^\d+\.\d+\.\d+/.test(pkg.version),
+    `version ${pkg.version} must be valid semver`,
+  );
+});
+
+check("dist-tag matches release channel (prerelease→next, GA→latest)", () => {
+  const tag = pkg.publishConfig?.tag;
+  const isPrerelease = String(pkg.version).includes("-");
+  if (isPrerelease) {
+    assert(
+      tag && tag !== "latest",
+      `prerelease ${pkg.version} must NOT publish to 'latest' (tag=${tag}); use 'next'`,
+    );
+  } else {
+    assert(
+      tag === "latest" || tag === "next",
+      `Release ${pkg.version} should publish to 'latest' or 'next' (tag=${tag})`,
+    );
+  }
+});
+
 // ── 3. Package Metadata ─────────────────────────────────────────────────────
 console.log("\n📋 Package Metadata");
 const requiredFields = [
@@ -132,7 +212,7 @@ check("README.md exists in package dir", () => {
 
 // ── 4. Pack Contents ────────────────────────────────────────────────────────
 console.log("\n📦 Pack Contents");
-const packOutput = execSync("npm pack --dry-run --json 2>/dev/null", {
+const packOutput = execSync("npm pack --dry-run --json", {
   cwd: SDK_DIR,
   encoding: "utf8",
 });
@@ -193,12 +273,20 @@ console.log("\n📐 Pack Size");
 const totalSize = packData[0].unpackedSize;
 const totalKB = Math.round(totalSize / 1024);
 
-check(`pack size is reasonable (${totalKB} KB, limit: 300 KB)`, () => {
-  assert(
-    totalSize < 300 * 1024,
-    `Pack is ${totalKB} KB — too large for a library`,
-  );
-});
+// ~84 KB of that is the generated tool catalog (tool-definitions.js),
+// legitimately shipped behind the /tools subpath; the rest is compiled
+// src + .d.ts. 450 KB leaves headroom for codegen growth while still
+// catching gross bloat (e.g. a dependency accidentally bundled in).
+const PACK_LIMIT_KB = 450;
+check(
+  `pack size is reasonable (${totalKB} KB, limit: ${PACK_LIMIT_KB} KB)`,
+  () => {
+    assert(
+      totalSize < PACK_LIMIT_KB * 1024,
+      `Pack is ${totalKB} KB — too large for a library`,
+    );
+  },
+);
 
 const fileCount = packFiles.length;
 check(`file count is reasonable (${fileCount} files, limit: 200)`, () => {
@@ -211,39 +299,71 @@ let tempDir: string | null = null;
 
 check("npm pack → install → import works", () => {
   // Pack
-  const tarball = execSync("npm pack 2>/dev/null", {
+  // No shell redirections in exec strings (Windows-hostile); take the
+  // last stdout line as the tarball name.
+  const packOut = execSync("npm pack", {
     cwd: SDK_DIR,
     encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
   }).trim();
+  const tarball = packOut.split("\n").at(-1)!.trim();
   const tarballPath = resolve(SDK_DIR, tarball);
+  cleanupPaths.push(tarballPath);
 
   // Create temp project
   tempDir = mkdtempSync(resolve(tmpdir(), "stitch-sdk-test-"));
-  execSync('npm init -y 2>/dev/null && npm pkg set type="module"', {
-    cwd: tempDir,
-    stdio: "pipe",
-  });
+  cleanupPaths.push(tempDir);
+  execSync("npm init -y", { cwd: tempDir, stdio: "pipe" });
+  execSync('npm pkg set type="module"', { cwd: tempDir, stdio: "pipe" });
 
   // Install from tarball
-  execSync(`npm install ${tarballPath} 2>/dev/null`, {
+  execSync(`npm install ${tarballPath}`, {
     cwd: tempDir,
     stdio: "pipe",
   });
 
-  // Test import
+  // Test import — root barrel AND every subpath entry. The temp project
+  // installs ONLY the tarball (no optional peers), so /tools must work
+  // peer-free and /ai must throw a clean, actionable error (not a bare
+  // ERR_MODULE_NOT_FOUND) when `ai` is absent.
   const testScript = `
-    import { stitch, Stitch, Project, Screen, StitchError } from "@google/stitch-sdk";
+    import { stitch, Stitch, Project, Screen, StitchError, Generation } from "@google/stitch-sdk";
+    import { toolDefinitions, toolMap } from "@google/stitch-sdk/tools";
 
-    // Verify exports exist
     if (typeof Stitch !== "function") throw new Error("Stitch class not exported");
     if (typeof Project !== "function") throw new Error("Project class not exported");
     if (typeof Screen !== "function") throw new Error("Screen class not exported");
     if (typeof StitchError !== "function") throw new Error("StitchError class not exported");
+    if (typeof Generation !== "function") throw new Error("Generation class not exported");
 
-    console.log("All exports verified ✓");
+    // /tools subpath: catalog must resolve without any optional peer.
+    if (!Array.isArray(toolDefinitions) || toolDefinitions.length === 0)
+      throw new Error("toolDefinitions not exported from /tools");
+    if (!(toolMap instanceof Map)) throw new Error("toolMap not exported from /tools");
+
+    // /ai and /adk without their optional peers must throw an actionable
+    // error (not a bare ERR_MODULE_NOT_FOUND).
+    let aiActionable = false;
+    try {
+      await import("@google/stitch-sdk/ai");
+    } catch (e) {
+      aiActionable = String(e && e.message).includes("npm install ai");
+    }
+    if (!aiActionable)
+      throw new Error("/ai should throw an actionable install error when 'ai' is absent");
+
+    let adkActionable = false;
+    try {
+      await import("@google/stitch-sdk/adk");
+    } catch (e) {
+      adkActionable = String(e && e.message).includes("npm install @google/adk");
+    }
+    if (!adkActionable)
+      throw new Error("/adk should throw an actionable install error when '@google/adk' is absent");
+
+    console.log("All exports + subpaths verified ✓");
   `;
 
-  const { writeFileSync } = require("fs");
   writeFileSync(resolve(tempDir, "test.mjs"), testScript);
 
   execSync("node test.mjs", {

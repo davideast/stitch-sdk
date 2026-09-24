@@ -1,0 +1,30 @@
+{
+  "$schema": "../rules.json",
+  "id": "additive-content-accessors",
+  "title": "Restore signed URL return semantics on getHtml/getImage and add readHtml/readImage for content",
+  "rule": "ADDITIVE_CONTENT_ACCESSORS",
+  "target": {
+    "file": "packages/sdk/src/screen-ext.ts",
+    "enclosingSymbol": "Screen",
+    "anchor": {
+      "contextBefore": "export class Screen extends GeneratedScreen implements ScreenContentSpec {",
+      "targetSnippet": "async getHtml(): Promise<string> {\n    const url = await this.getHtmlUrl();\n    const handler = new ScreenContentHandler();",
+      "contextAfter": "return result.response.text();"
+    }
+  },
+  "violation": {
+    "problem": "Screen.getHtml() and Screen.getImage() were repurposed to fetch content directly (HTML text and Uint8Array bytes), breaking 0.x code that expected signed download URLs.",
+    "expectedSolution": "Restore getHtml(): Promise<string> and getImage(): Promise<string> to return signed URLs (marked with @deprecated), keep getHtmlUrl() and getImageUrl(), and add readHtml(): Promise<string> and readImage(): Promise<Uint8Array> for content fetching."
+  },
+  "oracle": {
+    "type": "invariants",
+    "forbiddenPatterns": [
+      "async getImage(): Promise<Uint8Array> {",
+      "label: `HTML for screen ${this.screenId}`"
+    ],
+    "requiredPatterns": [
+      "async readHtml(): Promise<string>",
+      "async readImage(): Promise<Uint8Array>"
+    ]
+  }
+}

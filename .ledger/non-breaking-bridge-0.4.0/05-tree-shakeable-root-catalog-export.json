@@ -1,0 +1,28 @@
+{
+  "$schema": "../rules.json",
+  "id": "tree-shakeable-root-catalog-export",
+  "title": "Re-export toolDefinitions and toolMap from root index with deprecation notice",
+  "rule": "TREE_SHAKEABLE_ROOT_EXPORTS",
+  "target": {
+    "file": "packages/sdk/src/index.ts",
+    "enclosingSymbol": "root",
+    "anchor": {
+      "contextBefore": "export { Screen } from \"./screen-ext.js\";",
+      "targetSnippet": "// Tool catalog moved to \"@google/stitch-sdk/tools\" [V1_PLAN §3.8]:",
+      "contextAfter": "// Types (config + data interfaces)"
+    }
+  },
+  "violation": {
+    "problem": "toolDefinitions and toolMap were completely removed from the main package entry point (@google/stitch-sdk), breaking existing imports without a deprecation window.",
+    "expectedSolution": "Re-export toolDefinitions and toolMap from packages/sdk/src/index.ts with @deprecated pointing to @google/stitch-sdk/tools. Rely on package.json sideEffects: false for bundle tree-shaking."
+  },
+  "oracle": {
+    "type": "invariants",
+    "forbiddenPatterns": [
+      "// Tool catalog moved to \"@google/stitch-sdk/tools\" [V1_PLAN §3.8]:"
+    ],
+    "requiredPatterns": [
+      "export { toolDefinitions, toolMap } from \"./tools.js\";"
+    ]
+  }
+}

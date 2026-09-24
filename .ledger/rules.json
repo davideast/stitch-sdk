@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".ledger/rules.json",
+  "title": "Standing Architectural Rules & Ledger Schema",
+  "description": "Standing architectural rules and mechanical verification contracts governing the Stitch SDK non-breaking bridge.",
+  "type": "object",
+  "required": ["id", "title", "rule", "target", "violation", "oracle"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "rule": {
+      "type": "string",
+      "enum": [
+        "PRESERVE_BACKWARD_COMPATIBILITY",
+        "POLYMORPHIC_ARGUMENT_ROUTING",
+        "DUCK_TYPED_RESULT_CONTAINERS",
+        "ADDITIVE_CONTENT_ACCESSORS",
+        "NON_BREAKING_TYPE_INTERSECTIONS",
+        "PUBLIC_CONSTRUCTOR_HYDRATION",
+        "TREE_SHAKEABLE_ROOT_EXPORTS",
+        "NO_SILENT_ERROR_SWALLOWING",
+        "REQUIRE_NAMED_BOOLEANS",
+        "ATOMIC_FILE_OPERATIONS"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "required": ["file"],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "secondaryFile": {
+          "type": "string"
+        },
+        "enclosingSymbol": {
+          "type": "string"
+        },
+        "anchor": {
+          "type": "object",
+          "properties": {
+            "contextBefore": {
+              "type": "string"
+            },
+            "targetSnippet": {
+              "type": "string"
+            },
+            "contextAfter": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "violation": {
+      "type": "object",
+      "required": ["problem", "expectedSolution"],
+      "properties": {
+        "problem": {
+          "type": "string"
+        },
+        "expectedSolution": {
+          "type": "string"
+        }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "required": ["type", "forbiddenPatterns"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["invariants", "ast", "unit_test"]
+        },
+        "forbiddenPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "standingRules": {
+      "PRESERVE_BACKWARD_COMPATIBILITY": {
+        "id": "PRESERVE_BACKWARD_COMPATIBILITY",
+        "category": "API Stability & Evolution",
+        "summary": "Do not break existing consumers when introducing fixes and new functionality.",
+        "antiPatterns": [
+          "Breaking changes in minor or patch releases",
+          "Removing methods or properties without deprecation periods"
+        ],
+        "remediation": "Provide additive signatures, overloads, or non-breaking adapters with @deprecated annotations."
+      },
+      "POLYMORPHIC_ARGUMENT_ROUTING": {
+        "id": "POLYMORPHIC_ARGUMENT_ROUTING",
+        "category": "API Ergonomics & Extensibility",
+        "summary": "Methods migrating to trailing options objects must accept legacy positional parameters.",
+        "antiPatterns": [
+          "createProject(options?: { title?: string })",
+          "generate(prompt, options?: { deviceType?: string })"
+        ],
+        "remediation": "Accept union parameter types or overloads (e.g. titleOrOptions?: string | Options) and normalize at runtime."
+      },
+      "DUCK_TYPED_RESULT_CONTAINERS": {
+        "id": "DUCK_TYPED_RESULT_CONTAINERS",
+        "category": "Type Compatibility",
+        "summary": "Result containers replacing single-entity returns must implement or extend the entity.",
+        "antiPatterns": [
+          "Returning a standalone Generation container that is not assignable to Screen",
+          "Breaking Promise<Screen> consumers with an incompatible container"
+        ],
+        "remediation": "Extend the base entity or proxy property access to the primary screen so existing callers continue to work."
+      },
+      "ADDITIVE_CONTENT_ACCESSORS": {
+        "id": "ADDITIVE_CONTENT_ACCESSORS",
+        "category": "API Consistency",
+        "summary": "Do not repurpose existing URL getter methods to return raw payload content.",
+        "antiPatterns": [
+          "Changing screen.getHtml(): Promise<string> from returning a URL to returning HTML content",
+          "Changing screen.getImage(): Promise<string> from returning a URL to returning Uint8Array bytes"
+        ],
+        "remediation": "Retain URL return semantics on getHtml() and getImage() with @deprecated, and introduce readHtml() / readImage() for content."
+      },
+      "NON_BREAKING_TYPE_INTERSECTIONS": {
+        "id": "NON_BREAKING_TYPE_INTERSECTIONS",
+        "category": "Type Safety",
+        "summary": "Do not break user access to unmodeled entity data with strict unknown types.",
+        "antiPatterns": [
+          "data?: unknown;",
+          "Strict unknown on open data dictionaries"
+        ],
+        "remediation": "Intersect typed interfaces with index signatures (ScreenData & Record<string, any>) or retain permissive typings."
+      },
+      "PUBLIC_CONSTRUCTOR_HYDRATION": {
+        "id": "PUBLIC_CONSTRUCTOR_HYDRATION",
+        "category": "Object Lifecycle",
+        "summary": "Do not seal public constructors to protected without deprecation transitions.",
+        "antiPatterns": [
+          "scope: Scope.Protected on entity constructors",
+          "Throwing runtime errors on new Entity(...)"
+        ],
+        "remediation": "Retain public constructors, hydrate properties properly, register with EntityManager, and mark with @deprecated."
+      },
+      "TREE_SHAKEABLE_ROOT_EXPORTS": {
+        "id": "TREE_SHAKEABLE_ROOT_EXPORTS",
+        "category": "Packaging & Bundling",
+        "summary": "Do not remove public root exports when package tree-shaking metadata can reduce bundle size.",
+        "antiPatterns": [
+          "Removing toolDefinitions and toolMap from root export",
+          "Forcing breaking subpath migrations without deprecation"
+        ],
+        "remediation": "Re-export from root with @deprecated pointing to subpath, relying on sideEffects: false."
+      }
+    }
+  }
+}

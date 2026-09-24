@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "issueId": "tree-shakeable-root-catalog-export",
+  "status": "VERIFIED_FIXED",
+  "fixedAt": "2026-09-23T17:22:32.424Z",
+  "file": "packages/sdk/src/index.ts",
+  "enclosingSymbol": "root",
+  "verification": {
+    "oracleType": "invariants",
+    "forbiddenPatternsAbsent": [
+      "// Tool catalog moved to \"@google/stitch-sdk/tools\" [V1_PLAN §3.8]:"
+    ],
+    "requiredPatternsPresent": [
+      "export { toolDefinitions, toolMap } from \"./tools.js\";"
+    ],
+    "verifiedBy": "scripts/ledger.ts"
+  }
+}

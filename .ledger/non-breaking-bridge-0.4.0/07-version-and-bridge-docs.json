@@ -1,0 +1,25 @@
+{
+  "$schema": "../rules.json",
+  "id": "version-and-bridge-docs",
+  "title": "Lock package version to 0.4.0 and document the 0.4.0 Non-Breaking Bridge",
+  "rule": "PRESERVE_BACKWARD_COMPATIBILITY",
+  "target": {
+    "file": "packages/sdk/package.json",
+    "secondaryFile": "package.json",
+    "enclosingSymbol": "root",
+    "anchor": {
+      "contextBefore": "{\n  \"name\": \"@google/stitch-sdk\",",
+      "targetSnippet": "  \"version\": \"0.4.0\",",
+      "contextAfter": "  \"type\": \"module\","
+    }
+  },
+  "violation": {
+    "problem": "The version has drifted to 0.5.0 in the working tree, and documentation assumes an immediate breaking 1.0.0 release rather than a non-breaking 0.4.0 bridge.",
+    "expectedSolution": "Set versions to 0.4.0 in package.json and packages/sdk/package.json, run version sync, and document the 0.4.0 non-breaking bridge."
+  },
+  "oracle": {
+    "type": "invariants",
+    "forbiddenPatterns": ["\"version\": \"0.5.0\""],
+    "requiredPatterns": ["\"version\": \"0.4.0\""]
+  }
+}
